@@ -1,0 +1,27 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import AppShell from "@/components/AppShell";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import Agenda from "@/pages/Agenda";
+import Members from "@/pages/Members";
+import Sectors from "@/pages/Sectors";
+
+// One <Route> per page in src/pages; BrowserRouter already wraps this in main.tsx.
+export default function App() {
+  return (
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/solicitar-acesso" element={<Signup />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Agenda />} />
+          <Route path="/membros" element={<Members />} />
+          <Route path="/setores" element={<Sectors />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Toaster richColors />
+    </>
+  );
+}

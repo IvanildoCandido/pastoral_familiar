@@ -1,0 +1,199 @@
+{
+  "theme": {
+    "archetype": "ORGANIC & EARTHY with Warm Mediterranean / Sacred Amber touches",
+    "tone": "Acolhedor, Comunitário, Digno e Eficiente (Pastoral & Paroquial)",
+    "font_strategy": "Lora (Serif refinado, espiritual e solene para títulos) + DM Sans / Plus Jakarta Sans (Clareza, legibilidade em dispositivos móveis para membros)"
+  },
+  "typography": {
+    "font_heading": "'Lora Variable', serif",
+    "font_sans": "'Plus Jakarta Sans Variable', sans-serif",
+    "font_mono": "'JetBrains Mono Variable', monospace",
+    "scale_px": {
+      "display": 56,
+      "h1": 40,
+      "h2": 30,
+      "h3": 22,
+      "body": 16,
+      "caption": 14
+    },
+    "rules": {
+      "headings": "font-serif tracking-tight font-semibold text-slate-900 dark:text-amber-50",
+      "overlines": "uppercase tracking-[0.2em] text-xs font-bold text-amber-700 dark:text-amber-400",
+      "body": "font-sans leading-relaxed text-slate-700 dark:text-slate-300",
+      "numbers_dates": "font-medium text-slate-900 dark:text-slate-100"
+    }
+  },
+  "colors": {
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#FAF8F5",
+        "on_bg": "#1E293B",
+        "on_bg_muted": "#64748B",
+        "roles": {
+          "link": "#9A3412",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "panel",
+        "kind": "solid",
+        "bg": "#FFFFFF",
+        "on_bg": "#0F172A",
+        "on_bg_muted": "#475569",
+        "roles": {
+          "link": "#9A3412",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "card_elevated",
+        "kind": "solid",
+        "bg": "#FDFCFA",
+        "on_bg": "#1E293B",
+        "on_bg_muted": "#64748B",
+        "roles": {
+          "link": "#B45309",
+          "error": "#991B1B",
+          "success": "#166534"
+        }
+      },
+      {
+        "name": "header_glass",
+        "kind": "glass",
+        "contrast_against": "#F5EFE6",
+        "guarantee": "backdrop-blur-xl bg-amber-50/90 border-b border-amber-900/10",
+        "on_bg": "#451A03",
+        "on_bg_muted": "#78350F"
+      },
+      {
+        "name": "hero_banner",
+        "kind": "solid",
+        "bg": "#2A1810",
+        "on_bg": "#FEF3C7",
+        "on_bg_muted": "#D5C4A1",
+        "roles": {
+          "link": "#FBBF24",
+          "error": "#FCA5A5",
+          "success": "#86EFAC"
+        }
+      },
+      {
+        "name": "inverse",
+        "kind": "solid",
+        "bg": "#18120C",
+        "on_bg": "#FDF6ED",
+        "on_bg_muted": "#A8A29E",
+        "roles": {
+          "link": "#F59E0B",
+          "error": "#F87171",
+          "success": "#4ADE80"
+        }
+      },
+      {
+        "name": "badge_sector",
+        "kind": "solid",
+        "bg": "#FEF3C7",
+        "on_bg": "#78350F",
+        "on_bg_muted": "#92400E"
+      },
+      {
+        "name": "badge_role_coord",
+        "kind": "solid",
+        "bg": "#E0E7FF",
+        "on_bg": "#3730A3",
+        "on_bg_muted": "#4338CA"
+      },
+      {
+        "name": "badge_role_subcoord",
+        "kind": "solid",
+        "bg": "#F3E8FF",
+        "on_bg": "#6B21A8",
+        "on_bg_muted": "#7E22CE"
+      },
+      {
+        "name": "badge_role_member",
+        "kind": "solid",
+        "bg": "#F1F5F9",
+        "on_bg": "#334155",
+        "on_bg_muted": "#475569"
+      },
+      {
+        "name": "escala_voluntario_active",
+        "kind": "solid",
+        "bg": "#DCFCE7",
+        "on_bg": "#166534",
+        "on_bg_muted": "#15803D"
+      }
+    ],
+    "accent": "#B45309",
+    "on_accent": "#FFFFFF",
+    "secondary_accent": "#1E3A8A",
+    "on_secondary_accent": "#FFFFFF"
+  },
+  "entry_surfaces": {
+    "/": "warm pastoral header + hero banner with upcoming agenda preview & quick actions, followed by interactive events calendar with RSVP escala and sectors highlights",
+    "/login": "split branded auth view — warm church parish illustration & welcome message left, secure login form right",
+    "/solicitar-acesso": "split branded registration view — parish community note left, member self-signup form with sector selection and WhatsApp/phone right"
+  },
+  "visual_enhancers": {
+    "texture": "Subtle warm paper grain overlay (0.03 opacity) on body background",
+    "borders": "1px crisp amber-900/10 or slate-200 borders on light surfaces",
+    "cards": "Warm off-white background with subtle layered shadow: shadow-[0_4px_20px_-4px_rgba(69,26,3,0.06)]",
+    "pills": "Curved pill badges for sectors and roles with distinct background tints and dark readable text",
+    "escala_indicator": "Live helper badge with pulse indicator when escala is open and needs volunteers"
+  },
+  "image_urls": {
+    "parish_community": {
+      "url": "https://images.unsplash.com/photo-1569292567773-229e2b7521ee?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHxjb21tdW5pdHklMjBjaHVyY2glMjBjZWxlYnJhdGlvbnxlbnwwfHx8fDE3OTM3OTc4MDJ8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Comunidade paroquial reunida em frente à igreja - ideal para painel lateral de login/cadastro e cabeçalho acolhedor",
+      "category": "auth_side_panel, community_hero"
+    },
+    "community_celebration": {
+      "url": "https://images.unsplash.com/photo-1442504028989-ab58b5f29a4a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBjaHVyY2glMjBjZWxlYnJhdGlvbnxlbnwwfHx8fDE3OTM3OTc4MDJ8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Pessoas celebrando juntas em comunidade - banner de eventos e espírito de serviço voluntário",
+      "category": "events_banner, celebration"
+    }
+  },
+  "grids_and_layouts": {
+    "dashboard_home": "Bento Grid: Top Hero Agenda highlight (col-span-12), Next 3 upcoming events with open escala (col-span-12 lg:col-span-8), Quick Stats & Sector roster widget (col-span-12 lg:col-span-4)",
+    "events_page": "Filter bar (Todos, Meu Setor, Escala Aberta) + Asymmetric cards list with responsive grid (grid-cols-1 md:grid-cols-2 lg:grid-cols-3)",
+    "members_page": "Header with 'Novo Membro' (coordenadores) + Search and filter by Sector/Role + Responsive table for desktop and rich contact cards for mobile viewports",
+    "sectors_page": "Cards grid (grid-cols-1 md:grid-cols-2 lg:grid-cols-3) with sector coordinator names, member count badge, upcoming sector events list, and management actions"
+  },
+  "motion": {
+    "transitions": "transition-colors duration-200, transition-transform duration-150, transition-shadow duration-200",
+    "hover_cards": "hover:-translate-y-0.5 hover:shadow-md transition-all duration-200",
+    "rsvp_action": "active:scale-95 transition-transform duration-100",
+    "respect_reduced_motion": "motion-reduce:transform-none motion-reduce:transition-none"
+  },
+  "accessibility": {
+    "minimum_contrast": "All text and interactive borders meet APCA / WCAG AA 4.5:1 minimum on their declared surfaces",
+    "data_testids": "Every interactive button, modal trigger, form input, sector card, event card, and RSVP toggle must have kebab-case data-testid (e.g. data-testid='event-rsvp-help-btn', data-testid='member-create-btn', data-testid='sector-filter-select')",
+    "screen_readers": "aria-label on icon-only buttons (e.g. WhatsApp direct link, phone call, edit, delete)",
+    "focus_states": "focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+  },
+  "key_features_to_implement": [
+    "1. Sistema de Autenticação & Permissões: Coordenador Geral (gestão total de eventos, membros, setores e aprovação de cadastros), Subcoordenador (gestão de membros do seu setor e visualização de escalas), Membro (visualização da agenda, confirmação/participação nas escalas 'Vou ajudar' / 'Não vou poder')",
+    "2. Auto-cadastro de Membros ('Solicitar Acesso'): Membro se cadastra com nome, telefone/WhatsApp, e-mail, senha, setor desejado e observações; Coordenadores recebem notificação visual de aprovações pendentes",
+    "3. Agenda Paroquial & Escalas Abertas: Visualização dos próximos eventos paroquiais com data, hora, local, setor responsável, contagem de voluntários necessários vs inscritos, e botões interativos de confirmação em 1 clique ('Vou ajudar' / 'Não vou')",
+    "4. Cadastro e Gestão de Membros: Listagem com filtros por setor, busca por nome/telefone, espaço para anotações/observações confidenciais para coordenação, botão direto para abrir WhatsApp (wa.me/55...)",
+    "5. Divisão por Setores da Pastoral: Cadastro de setores (ex: Acolhida, Liturgia, Música, Comunicação, Social, etc.), atribuição de Coordenador e Subcoordenador por setor",
+    "6. Criar e Editar Eventos: Diálogo completo para Coordenadores com título, descrição, data/hora início e fim, local (ex: Salão Paroquial, Igreja Matriz), setor responsável ou evento geral, e toggle para 'Abrir Escala de Voluntários' com vagas limite opcionais",
+    "7. Painel de Escala Detalhado: Ver quem confirmou presença/ajuda com nome e telefone para facilitar contato e alinhamento da equipe no dia do evento",
+    "8. Formatação Brasileira (pt-BR): Datas no formato 'DD/MM/AAAA às HH:mm', telefones com máscara '(99) 99999-9999', textos e termos paroquiais autênticos"
+  ],
+  "instructions_to_main_agent": {
+    "css_theme_entry": "/app/frontend/src/index.css",
+    "app_shell": "/app/frontend/src/App.tsx",
+    "ui_components_path": "/app/frontend/src/components/ui/",
+    "backend_routers": "/app/backend/routers/",
+    "backend_seed": "/app/backend/seed.py",
+    "font_imports": "Import '@fontsource-variable/lora' and '@fontsource-variable/plus-jakarta-sans' in index.css",
+    "data_testids_required": true,
+    "seed_data_recommendation": "Seed Paróquia com coordenador geral padrão (ex: coord@paroquia.org / senha123), 4 setores realistas (Liturgia & Canto, Acolhida & Recepção, Ação Social & Caridade, Comunicação & Mídia), 12 membros fictícios com telefones brasileiros e 4 eventos com escalas abertas e voluntários já inscritos"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "pastoral-familiar",
+  "private": true,
+  "type": "module",
+  "workspaces": ["frontend"],
+  "engines": {"node": "24.x"},
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch --env-file-if-exists=.env backend/src/dev.ts",
+    "dev:web": "npm run dev --workspace frontend",
+    "build": "npm run typecheck && npm run build --workspace frontend",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace frontend",
+    "test": "tsx --test backend/tests/*.test.ts",
+    "db:migrate": "tsx --env-file-if-exists=.env backend/scripts/migrate.ts",
+    "db:admin": "tsx --env-file-if-exists=.env backend/scripts/admin.ts",
+    "db:import": "tsx --env-file-if-exists=.env backend/scripts/import-mongo.ts"
+  },
+  "dependencies": {"express": "^5.1.0", "pg": "^8.16.3", "zod": "^4.1.0"},
+  "devDependencies": {"@electric-sql/pglite": "^0.3.14", "@types/express": "^5.0.3", "@types/node": "^24.0.0", "@types/pg": "^8.15.5", "@types/supertest": "^6.0.3", "concurrently": "^9.2.1", "supertest": "^7.1.4", "tsx": "^4.20.6", "typescript": "^5.9.3"}
+}

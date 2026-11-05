@@ -1,0 +1,10 @@
+.env
+.env.*
+**/.env
+**/.env.*
+!/.env.example
+/mongo-export
+/memory
+/test_reports
+/tests/test-results
+**/__pycache__

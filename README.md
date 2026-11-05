@@ -41,7 +41,7 @@ Se já existem dados no MongoDB, use o procedimento de importação abaixo **ant
 5. Na Vercel, clique em **Add New → Project** e importe o repositório. Importe o repositório completo. A configuração de build está versionada em `vercel.json`; não é necessário preencher os campos de build no painel:
    - Install Command: `npm ci --include=dev --workspaces --include-workspace-root`
    - Build Command: `npm run vercel-build`
-   - Output Directory: `dist`
+   - Output Directory: `dist` (relativo à raiz selecionada)
 6. Em **Environment Variables**, adicione `DATABASE_URL` e `APP_TZ=America/Fortaleza` para Production. Não é necessário cadastrar `ADMIN_PASSWORD` na Vercel; ela é usada somente para criar o coordenador pelo comando local. Se habilitar Preview, configure também essas variáveis, preferencialmente apontando para um banco de testes separado.
 7. Clique em **Deploy**. Abra o domínio HTTPS gerado, faça login e confira setores, eventos, cadastro e confirmação de presença. `/api/` deve retornar `{"message":"Pastoral API"}`; faça login para validar também a conexão real ao banco. Links diretos como `/membros` devem carregar a interface.
 
@@ -72,7 +72,9 @@ Confira o login do coordenador existente e os dados importados antes de direcion
 ## Estrutura e validação
 
 ```text
-api/index.ts                    Entrada da função Vercel
+api/index.ts                    Entrada da função Vercel pela raiz
+frontend/api/index.ts           Entrada da mesma API pelo workspace frontend
+frontend/vercel.json            Configuração para publicação pelo workspace
 backend/src/                    API Express, autenticação, validação e acesso ao PostgreSQL
 backend/scripts/                Migração, criação de coordenador e importação
 backend/tests/api.test.ts        Integração HTTP/SQL com PostgreSQL embarcado (PGlite)
@@ -102,6 +104,8 @@ Os testes usam um banco PostgreSQL embarcado temporário, sem credenciais extern
 
 ## Build automático da Vercel
 
-O comando `npm run vercel-build` usa o mesmo build validado localmente. O Vite gera os arquivos em `dist/` na raiz, e o próprio build verifica a presença de `index.html`, do favicon e da entrada da API. O `vercel.json` desativa a detecção automática de framework e declara explicitamente instalação, comando, saída e rotas, para que a seleção automática do workspace frontend não determine o diretório de publicação.
+O comando `npm run vercel-build` usa o mesmo build validado localmente. O Vite gera os arquivos em `frontend/dist/`, e o build também copia essa saída para `dist/` na raiz. Ambas as raízes possuem `api/index.ts` apontando para a mesma aplicação Express e configuração `vercel.json`. O build verifica os arquivos publicados, o favicon e as entradas da API. O `vercel.json` desativa a detecção automática de framework e declara explicitamente instalação, comando, saída e rotas, para que a seleção automática do workspace frontend não determine o diretório de publicação.
 
 O comando `vercel-build` existe tanto na raiz quanto no workspace `frontend`. Ambos usam `scripts/vercel-build.ts` para executar o build completo com o diretório de trabalho na raiz. A instalação da Vercel inclui explicitamente as dependências da raiz e do frontend.
+
+A publicação funciona com a raiz do repositório ou com `frontend` como Root Directory. A API e suas dependências também estão declaradas no workspace para que o empacotamento da função seja feito nos dois casos.

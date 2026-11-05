@@ -39,7 +39,7 @@ Se já existem dados no MongoDB, use o procedimento de importação abaixo **ant
 3. **Prepare o acesso.** Para instalação nova, defina `ADMIN_PASSWORD` no `.env` e execute `npm run db:admin`. Para manter os dados antigos, importe-os conforme a seção seguinte.
 4. **Envie o código para seu repositório Git**, incluindo `package-lock.json`. Os arquivos `.env` e as exportações do MongoDB estão no `.gitignore` e não devem ser publicados. Se algum segredo já foi versionado anteriormente, remova-o do controle de versão e troque a credencial.
 5. Na Vercel, clique em **Add New → Project** e importe o repositório. Importe o repositório completo. A configuração de build está versionada em `vercel.json`; não é necessário preencher os campos de build no painel:
-   - Install Command: `npm ci`
+   - Install Command: `npm ci --include=dev --workspaces --include-workspace-root`
    - Build Command: `npm run vercel-build`
    - Output Directory: `dist`
 6. Em **Environment Variables**, adicione `DATABASE_URL` e `APP_TZ=America/Fortaleza` para Production. Não é necessário cadastrar `ADMIN_PASSWORD` na Vercel; ela é usada somente para criar o coordenador pelo comando local. Se habilitar Preview, configure também essas variáveis, preferencialmente apontando para um banco de testes separado.
@@ -103,3 +103,5 @@ Os testes usam um banco PostgreSQL embarcado temporário, sem credenciais extern
 ## Build automático da Vercel
 
 O comando `npm run vercel-build` usa o mesmo build validado localmente. O Vite gera os arquivos em `dist/` na raiz, e o próprio build verifica a presença de `index.html`, do favicon e da entrada da API. O `vercel.json` desativa a detecção automática de framework e declara explicitamente instalação, comando, saída e rotas, para que a seleção automática do workspace frontend não determine o diretório de publicação.
+
+O comando `vercel-build` existe tanto na raiz quanto no workspace `frontend`. Ambos usam `scripts/vercel-build.ts` para executar o build completo com o diretório de trabalho na raiz. A instalação da Vercel inclui explicitamente as dependências da raiz e do frontend.

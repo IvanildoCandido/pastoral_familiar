@@ -18,7 +18,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env backend/scripts/migrate.ts",
     "db:admin": "tsx --env-file-if-exists=.env backend/scripts/admin.ts",
     "db:import": "tsx --env-file-if-exists=.env backend/scripts/import-mongo.ts",
-    "vercel-build": "npm run build"
+    "vercel-build": "node scripts/vercel-build.ts"
   },
   "dependencies": {
     "express": "^5.1.0",

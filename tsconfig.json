@@ -4,5 +4,5 @@
     "strict": true, "esModuleInterop": true, "skipLibCheck": true, "noEmit": true,
     "types": ["node"]
   },
-  "include": ["api/**/*.ts", "backend/**/*.ts", "shared/**/*.ts"]
+  "include": ["api/**/*.ts", "backend/**/*.ts", "shared/**/*.ts", "scripts/**/*.ts"]
 }

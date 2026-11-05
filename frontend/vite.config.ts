@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 const root = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
+  build: {outDir: path.resolve(root, '../dist'), emptyOutDir: true},
   plugins: [react(), tailwindcss()],
   resolve: {alias: {'@': path.resolve(root, 'src')}},
   // Preserve o Host do navegador para a API validar a origem através do proxy local.

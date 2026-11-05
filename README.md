@@ -38,10 +38,10 @@ Se já existem dados no MongoDB, use o procedimento de importação abaixo **ant
 2. **Prepare o banco.** No seu computador, configure `.env` e rode `npm ci` e `npm run db:migrate`. Alternativamente, cole o conteúdo de [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) no SQL Editor do Supabase e execute uma única vez. Se usar o SQL Editor, não execute também `db:migrate` no mesmo banco.
 3. **Prepare o acesso.** Para instalação nova, defina `ADMIN_PASSWORD` no `.env` e execute `npm run db:admin`. Para manter os dados antigos, importe-os conforme a seção seguinte.
 4. **Envie o código para seu repositório Git**, incluindo `package-lock.json`. Os arquivos `.env` e as exportações do MongoDB estão no `.gitignore` e não devem ser publicados. Se algum segredo já foi versionado anteriormente, remova-o do controle de versão e troque a credencial.
-5. Na Vercel, clique em **Add New → Project** e importe o repositório. Mantenha **Root Directory na raiz do repositório**, e não em `frontend`. Use Node.js **24.x**. O arquivo `vercel.json` configura:
+5. Na Vercel, clique em **Add New → Project** e importe o repositório. Importe o repositório completo. A configuração de build está versionada em `vercel.json`; não é necessário preencher os campos de build no painel:
    - Install Command: `npm ci`
-   - Build Command: `npm run build`
-   - Output Directory: `frontend/dist`
+   - Build Command: `npm run vercel-build`
+   - Output Directory: `dist`
 6. Em **Environment Variables**, adicione `DATABASE_URL` e `APP_TZ=America/Fortaleza` para Production. Não é necessário cadastrar `ADMIN_PASSWORD` na Vercel; ela é usada somente para criar o coordenador pelo comando local. Se habilitar Preview, configure também essas variáveis, preferencialmente apontando para um banco de testes separado.
 7. Clique em **Deploy**. Abra o domínio HTTPS gerado, faça login e confira setores, eventos, cadastro e confirmação de presença. `/api/` deve retornar `{"message":"Pastoral API"}`; faça login para validar também a conexão real ao banco. Links diretos como `/membros` devem carregar a interface.
 
@@ -99,3 +99,7 @@ Os testes usam um banco PostgreSQL embarcado temporário, sem credenciais extern
 - Cookies de sessão são HTTP-only, SameSite=Lax e Secure em produção. No banco, apenas o hash do token é armazenado. As permissões são consultadas a cada requisição.
 - As tabelas têm RLS habilitado e nenhuma política pública. O navegador acessa somente a API, que usa a conexão PostgreSQL privada e verifica as permissões. Supabase Auth não é usado: o login existente por usuário e senha foi mantido.
 - Reservas e substituição de presenças usam transações; a reserva trava o evento para respeitar vagas com requisições concorrentes.
+
+## Build automático da Vercel
+
+O comando `npm run vercel-build` usa o mesmo build validado localmente. O Vite gera os arquivos em `dist/` na raiz, e o próprio build verifica a presença de `index.html`, do favicon e da entrada da API. O `vercel.json` desativa a detecção automática de framework e declara explicitamente instalação, comando, saída e rotas, para que a seleção automática do workspace frontend não determine o diretório de publicação.

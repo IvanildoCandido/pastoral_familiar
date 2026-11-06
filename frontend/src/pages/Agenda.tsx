@@ -1,4 +1,4 @@
-import { BrandingUpload, useBranding } from "@/components/Branding";
+import { useBranding } from "@/components/Branding";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -119,7 +119,6 @@ export default function Agenda() {
 
   return (
     <div className="space-y-8">
-      {isCoord && <BrandingUpload />}
       <section className="relative overflow-hidden rounded-3xl bg-[#2A1810] text-amber-50 shadow-[0_20px_50px_-20px_rgba(42,24,16,0.6)]" data-testid="agenda-hero">
         <img src={branding.data?.hero_url || HERO_IMG} alt="" className="absolute inset-0 size-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#2A1810] via-[#2A1810]/85 to-[#2A1810]/30" />

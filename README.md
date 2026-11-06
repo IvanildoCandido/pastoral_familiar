@@ -112,7 +112,7 @@ A publicação funciona com a raiz do repositório ou com `frontend` como Root D
 
 ## Personalização e setores
 
-A coordenação pode enviar foto inicial e logo na agenda em **Personalizar imagens da Pastoral Familiar** (PNG, JPEG ou WebP, até 1 MB cada). Os arquivos ficam no Supabase Storage, no bucket público `pastoral-branding`; a tabela `app_settings` guarda somente suas URLs. As imagens aparecem na agenda e na entrada.
+A coordenação pode enviar foto inicial e logo no **menu do perfil → Configurações → Imagens da pastoral** (PNG, JPEG ou WebP, até 1 MB cada). Os arquivos ficam no Supabase Storage, no bucket público `pastoral-branding`; a tabela `app_settings` guarda somente suas URLs. As imagens aparecem na agenda e na entrada.
 
 Ao editar um subcoordenador, selecione os setores de participação e, separadamente, os setores que subcoordena. Apenas estes últimos concedem acesso aos membros e à presença do setor. Cadastros públicos sempre entram como membros pendentes.
 

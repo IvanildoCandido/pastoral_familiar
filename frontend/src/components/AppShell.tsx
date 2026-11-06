@@ -1,12 +1,13 @@
 import { BrandLogo } from "@/components/Branding";
-import { NavLink, Navigate, Outlet } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, LayoutGrid, LogOut, Users } from "lucide-react";
+import { CalendarDays, ChevronDown, LayoutGrid, LogOut, Settings, Users } from "lucide-react";
 import { ApiError, apiGet } from "@/lib/api";
 import { endSession } from "@/lib/session";
 import { isLeader, useMe } from "@/hooks/useMe";
 import { ROLE_BADGE, ROLE_LABELS, initials } from "@/lib/format";
 import type { User } from "@/lib/types";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const linkBase =
@@ -54,6 +55,7 @@ function NavItems({ leader, pending, mobile }: { leader: boolean; pending: numbe
 }
 
 export default function AppShell() {
+  const navigate = useNavigate();
   const me = useMe();
   const user = me.data;
   const leader = isLeader(user);
@@ -89,33 +91,41 @@ export default function AppShell() {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             {user && (
-              <div className="hidden text-right sm:block" data-testid="current-user-info">
-                <div className="text-sm font-semibold text-[#451A03]" data-testid="current-user-name">
-                  {user.name}
-                </div>
-                <span
-                  className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", ROLE_BADGE[user.role])}
-                  data-testid="current-user-role"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Abrir menu do perfil"
+                  data-testid="profile-menu-trigger"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 py-1 text-[#451A03] outline-none transition-colors hover:bg-amber-100/70 focus-visible:ring-2 focus-visible:ring-amber-600"
                 >
-                  {ROLE_LABELS[user.role]}
-                </span>
-              </div>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-amber-200 text-sm font-bold text-[#78350F] sm:hidden">
+                    {initials(user.name)}
+                  </span>
+                  <span className="hidden text-right sm:block" data-testid="current-user-info">
+                    <span className="block text-sm font-semibold" data-testid="current-user-name">{user.name}</span>
+                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", ROLE_BADGE[user.role])}
+                      data-testid="current-user-role">{ROLE_LABELS[user.role]}</span>
+                  </span>
+                  <ChevronDown className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-56 rounded-xl p-2">
+                  <div className="px-2 py-2 text-sm sm:hidden">
+                    <p className="font-semibold text-[#451A03]">{user.name}</p>
+                    <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
+                  </div>
+                  {user.role === "coordenador" && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate("/configuracoes")} data-testid="profile-settings-link" className="min-h-10 rounded-lg px-3">
+                        <Settings className="size-4" /> Configurações
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={() => void endSession()} data-testid="logout-button" className="min-h-10 rounded-lg px-3">
+                    <LogOut className="size-4" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            {user && (
-              <span className="grid size-9 place-items-center rounded-full bg-amber-200 text-sm font-bold text-[#78350F] sm:hidden">
-                {initials(user.name)}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => void endSession()}
-              data-testid="logout-button"
-              aria-label="Sair"
-              className="inline-flex items-center gap-1.5 rounded-full border border-amber-900/15 px-3 py-2 text-sm font-semibold text-[#78350F] transition-colors duration-200 hover:bg-amber-100"
-            >
-              <LogOut className="size-4" />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
           </div>
         </div>
       </header>

@@ -5,6 +5,7 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Agenda from "@/pages/Agenda";
 import Members from "@/pages/Members";
+import Settings from "@/pages/Settings";
 import Sectors from "@/pages/Sectors";
 
 // One <Route> per page in src/pages; BrowserRouter already wraps this in main.tsx.
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/" element={<Agenda />} />
           <Route path="/membros" element={<Members />} />
           <Route path="/setores" element={<Sectors />} />
+          <Route path="/configuracoes" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

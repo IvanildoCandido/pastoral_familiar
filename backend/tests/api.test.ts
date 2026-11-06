@@ -8,6 +8,7 @@ import { createApp } from '../src/app.js';
 import { hashPassword, verifyPassword } from '../src/auth.js';
 import type { Database } from '../src/db.js';
 import { apiPost } from '../../frontend/src/lib/api.js';
+import type { BrandingStorage } from '../src/storage.js';
 import type { User } from '../../shared/types.js';
 
 function adapter(engine: PGlite | Transaction): Database {
@@ -20,7 +21,19 @@ function adapter(engine: PGlite | Transaction): Database {
 test('API: permissões, escalas, calendário, presença, sessões e exclusões',async t=> {
   const pg=new PGlite();
   await pg.exec(await readFile(new URL('../../supabase/migrations/001_initial.sql',import.meta.url),'utf8'));
-  const db=adapter(pg), app=createApp(db);
+  await pg.exec(await readFile(new URL('../../supabase/migrations/002_event_identity_sectors.sql',import.meta.url),'utf8'));
+  const files=new Map<string,Buffer>();
+  let failUpload=false;
+  const storage:BrandingStorage={
+    ensureBucket:async()=>{},
+    upload:async (kind,bytes)=>{
+      if(failUpload) throw new Error('Upload failed');
+      const url=`https://example.supabase.co/storage/v1/object/public/pastoral-branding/${kind}/${randomUUID()}.png`;
+      files.set(url,bytes); return url;
+    },
+    remove:async url=>{files.delete(url);},
+  };
+  const db=adapter(pg), app=createApp(db,()=>storage);
   t.after(()=>pg.close());
   const adminId=randomUUID();
   const password='Teste-12345678';
@@ -38,7 +51,7 @@ test('API: permissões, escalas, calendário, presença, sessões e exclusões',
   const a=(await admin.post('/api/sectors').send({name:'Acolhida'}).expect(201)).body;
   const b=(await admin.post('/api/sectors').send({name:'Liturgia'}).expect(201)).body;
   async function createUser(username: string, role: string, sectorIds: string[]) {
-    return (await admin.post('/api/members').send({username,password,name:username,role,sector_ids:sectorIds,notes:'Privado'}).expect(201)).body;
+    return (await admin.post('/api/members').send({username,password,name:username,role,sector_ids:sectorIds,coordinated_sector_ids:role==='subcoordenador'?sectorIds:[],notes:'Privado'}).expect(201)).body;
   }
   const leader=await createUser('lider','subcoordenador',[a.id]);
   const person=await createUser('membro','membro',[a.id,b.id]);
@@ -121,6 +134,40 @@ test('API: permissões, escalas, calendário, presença, sessões e exclusões',
     await outsider.post(`/api/events/${ev.id}/rsvp`).send({response:'going'}).expect(409);
     await admin.put(`/api/events/${ev.id}`).send({...eventBody,roles:[],escala_open:false}).expect(200);
     await member.post(`/api/events/${ev.id}/rsvp`).send({response:'not_going'}).expect(400);
+  });
+  await t.test('identidade, autoria, cores e subcoordenação por setor',async ()=> {
+    const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
+    await request(app).post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(401);
+    await member.post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(403);
+    await sub.post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(403);
+    await admin.post('/api/settings/images/other').set('Content-Type','image/png').send(image).expect(422);
+    await admin.post('/api/settings/images/logo').set('Content-Type','image/png').send(Buffer.from('not an image')).expect(422);
+    await admin.post('/api/settings/images/logo').set('Content-Type','image/svg+xml').send('<svg/>').expect(422);
+    await admin.post('/api/settings/images/logo').set('Content-Type','image/png').send(Buffer.alloc(1024*1024+1)).expect(413);
+    const first=(await admin.post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(200)).body;
+    const hero=(await admin.post('/api/settings/images/hero').set('Content-Type','image/png').send(image).expect(200)).body;
+    assert.equal(hero.logo_url,first.logo_url);
+    assert.ok(!hero.hero_url.startsWith('data:'));
+    const second=(await admin.post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(200)).body;
+    assert.equal(second.hero_url,hero.hero_url);
+    assert.ok(!files.has(first.logo_url)); assert.ok(files.has(second.logo_url));
+    assert.equal((await request(app).get('/api/settings').expect(200)).body.logo_url,second.logo_url);
+    failUpload=true;
+    await admin.post('/api/settings/images/logo').set('Content-Type','image/png').send(image).expect(500);
+    failUpload=false;
+    assert.equal((await request(app).get('/api/settings')).body.logo_url,second.logo_url);
+    const ev=(await admin.post('/api/events').send({...eventBody,event_type:'Formação',color:'#7c3aed'}).expect(201)).body;
+    assert.equal(ev.created_by,adminId); assert.equal(ev.created_by_name,'Coordenação');
+    assert.equal(ev.color,'#7c3aed'); assert.equal(ev.event_type,'Formação');
+    await admin.post('/api/events').send({...eventBody,color:'red'}).expect(422);
+    await admin.put(`/api/members/${leader.id}`).send({name:'Lider',role:'subcoordenador',sector_ids:[a.id,b.id],coordinated_sector_ids:[a.id]}).expect(200);
+    assert.deepEqual((await sub.get('/api/auth/me')).body.coordinated_sector_ids,[a.id]);
+    const other=(await admin.post('/api/events').send({...eventBody,date:'2020-01-01',sector_id:b.id}).expect(201)).body;
+    await sub.put(`/api/events/${other.id}/attendance`).send({present_user_ids:[]}).expect(403);
+    assert.ok(!(await sub.get('/api/members')).body.some((u:User)=>u.id===outside.id));
+    await request(app).post('/api/auth/signup').send({username:'elevacao',password,name:'Cadastro',role:'coordenador',coordinated_sector_ids:[a.id]}).expect(201);
+    const [signup]=await db.query<User>("SELECT * FROM users WHERE username='elevacao'");
+    assert.equal(signup.role,'membro'); assert.deepEqual(signup.coordinated_sector_ids,[]);
   });
   await t.test('exclusões em cascata e invalidação da sessão',async ()=> {
     await admin.delete(`/api/events/${event.id}`).expect(200);

@@ -1,6 +1,7 @@
+import { BrandLogo } from "@/components/Branding";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Church, LayoutGrid, LogOut, Users } from "lucide-react";
+import { CalendarDays, LayoutGrid, LogOut, Users } from "lucide-react";
 import { ApiError, apiGet } from "@/lib/api";
 import { endSession } from "@/lib/session";
 import { isLeader, useMe } from "@/hooks/useMe";
@@ -74,10 +75,10 @@ export default function AppShell() {
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
           <NavLink to="/" className="flex items-center gap-2.5" data-testid="brand-home-link">
             <span className="grid size-9 place-items-center rounded-xl bg-[#451A03] text-amber-100 shadow-sm">
-              <Church className="size-5" />
+              <BrandLogo />
             </span>
             <span className="leading-tight">
-              <span className="block font-serif text-lg font-semibold text-[#451A03]">Pastoral</span>
+              <span className="block font-serif text-lg font-semibold text-[#451A03]">Pastoral Familiar</span>
               <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
                 Agenda & Escalas
               </span>

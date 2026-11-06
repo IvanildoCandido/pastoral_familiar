@@ -23,10 +23,10 @@ interface Props {
 
 function initial(event: EventItem | null, defaultDate: string): EventIn {
   if (!event)
-    return { title: "", description: "", date: defaultDate, time: "19:00", location: "", sector_id: null, escala_open: true, slots: null, roles: [] };
+    return { event_type: "Encontro", color: "#15803d", title: "", description: "", date: defaultDate, time: "19:00", location: "", sector_id: null, escala_open: true, slots: null, roles: [] };
   const { title, description, date, time, location, sector_id, escala_open, slots, roles } = event;
   return {
-    title, description, date, time, location, sector_id, escala_open, slots,
+    title, description, date, time, location, sector_id, escala_open, slots, event_type: event.event_type, color: event.color,
     roles: roles.map((r) => ({ id: r.id, name: r.name, slots: r.slots })),
   };
 }
@@ -61,6 +61,7 @@ function EventForm({ event, sectors, defaultDate, onDone }: Omit<Props, "open" |
       }}
     >
       <div className="space-y-2">
+        <div className="grid grid-cols-[1fr_auto] gap-3 mb-4"><div><Label htmlFor="ev-type">Tipo do evento</Label><Input id="ev-type" required maxLength={60} value={form.event_type} onChange={e=>setForm({...form,event_type:e.target.value})} placeholder="Ex: Missa, formação, encontro" /></div><div><Label htmlFor="ev-color">Cor no calendário</Label><Input id="ev-color" type="color" value={form.color} onChange={e=>setForm({...form,color:e.target.value})} className="w-16" /></div></div>
         <Label htmlFor="ev-title">Título</Label>
         <Input id="ev-title" value={form.title} required placeholder="Ex: Missa da Comunidade"
           onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="event-title-input" />

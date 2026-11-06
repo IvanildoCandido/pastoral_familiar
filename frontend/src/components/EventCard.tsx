@@ -159,6 +159,7 @@ export default function EventCard({ event, isCoord, onEdit, onDelete, onAttendan
           </div>
 
           <h3 className="mt-2 font-serif text-xl font-semibold leading-snug text-slate-900" data-testid={`event-title-${event.id}`}>{event.title}</h3>
+          <p className="mt-1 text-xs text-slate-500"><span style={{backgroundColor:event.color}} className="mr-1 inline-block size-2 rounded-full" />{event.event_type} · Criado por {event.created_by_name ?? "usuário removido ou não registrado"}</p>
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1.5"><CalendarClock className="size-4 text-amber-700" />{fmtDate(event.date, "EEEE, d 'de' MMMM")}</span>
             {event.time && <span className="inline-flex items-center gap-1.5" data-testid={`event-time-${event.id}`}><Clock className="size-4 text-amber-700" />{event.time}</span>}

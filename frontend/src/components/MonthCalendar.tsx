@@ -61,13 +61,12 @@ export default function MonthCalendar({ month, onMonthChange, events, selected, 
                 <>
                   <span className="mt-1 flex justify-center gap-0.5 sm:hidden">
                     {list.slice(0, 3).map((e) => (
-                      <span key={e.id} className={cn("size-1.5 rounded-full", e.escala_open ? "bg-green-600" : "bg-amber-700")} />
+                      <span key={e.id} title={`${e.event_type}: ${e.title}`} style={{backgroundColor:e.color}} className="size-1.5 rounded-full" />
                     ))}
                   </span>
                   <span className="mt-1 hidden space-y-0.5 sm:block">
                     {list.slice(0, 2).map((e) => (
-                      <span key={e.id} className={cn("block truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
-                        e.escala_open ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEF3C7] text-[#78350F]")}>
+                      <span key={e.id} title={`${e.event_type}: ${e.title}`} style={{backgroundColor:`${e.color}20`,color:"#1e293b",borderLeft:`3px solid ${e.color}`}} className="block truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold">
                         {e.time ? `${e.time} ` : ""}{e.title}
                       </span>
                     ))}

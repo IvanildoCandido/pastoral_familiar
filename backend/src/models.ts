@@ -2,10 +2,11 @@ import { z } from 'zod';
 import type { Role, UserStatus } from '../../shared/types.js';
 export interface Person {
   id: string; username: string; password_hash: string; name: string; phone: string;
-  notes: string; role: Role; sector_ids: string[]; status: UserStatus;
+  notes: string; role: Role; sector_ids: string[]; coordinated_sector_ids: string[]; status: UserStatus;
   created_at: string; last_seen_at: string | null;
 }
 export interface EventDoc {
+  event_type: string; color: string;
   id: string; title: string; description: string; date: string; time: string;
   location: string; sector_id: string | null; escala_open: boolean; slots: number | null;
   roles: {id: string; name: string; slots: number | null}[]; created_at: string; created_by: string | null;
@@ -19,15 +20,16 @@ const password = z.string().min(6).max(100);
 const sectors = z.array(z.string().uuid()).max(500).default([]).transform(s => [...new Set(s)]);
 export const profileSchema = z.object({
   name: text(2, 100), phone: text(0, 30).default(''), notes: text(0, 1000).default(''),
-  role: z.enum(['coordenador', 'subcoordenador', 'membro']).default('membro'), sector_ids: sectors,
+  role: z.enum(['coordenador', 'subcoordenador', 'membro']).default('membro'), sector_ids: sectors, coordinated_sector_ids: sectors,
 });
 export const memberSchema = profileSchema.extend({username, password});
 export const updateMemberSchema = profileSchema.extend({password: password.nullable().optional()});
-export const signupSchema = memberSchema.omit({role: true});
+export const signupSchema = memberSchema.omit({role: true, coordinated_sector_ids: true});
 export const loginSchema = z.object({username: z.string().trim().toLowerCase().max(100), password: z.string().max(100)});
 export const sectorSchema = z.object({name: text(2, 60), description: text(0, 300).default('')});
 const slots = z.number().int().min(1).max(500).nullable().default(null);
 export const eventSchema = z.object({
+  event_type: text(1, 60).default('Encontro'), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#15803d'),
   title: text(2, 120), description: text(0, 2000).default(''), date: z.iso.date(),
   time: z.string().regex(/^(?:([01]\d|2[0-3]):[0-5]\d)?$/).default(''),
   location: text(0, 120).default(''), sector_id: z.string().uuid().nullable().default(null),

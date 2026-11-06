@@ -35,6 +35,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     phone: member?.phone ?? "",
     notes: member?.notes ?? "",
     role: member?.role ?? "membro",
+    coordinated_sector_ids: member?.coordinated_sector_ids ?? [],
     sector_ids: member ? member.sector_ids : isCoord ? [] : [...mySectorIds],
   }));
   const outside = isCoord ? [] : sectors.filter((s) => form.sector_ids.includes(s.id) && !mySectorIds.includes(s.id));
@@ -43,7 +44,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     mutationFn: () => {
       if (member) {
         const body: MemberUpdate = {
-          name: form.name, phone: form.phone, notes: form.notes, role: form.role, sector_ids: form.sector_ids,
+          name: form.name, phone: form.phone, notes: form.notes, role: form.role, sector_ids: form.sector_ids, coordinated_sector_ids: form.role === "subcoordenador" ? form.coordinated_sector_ids : [],
           password: form.password ? form.password : null,
         };
         return apiPut<User>(`/members/${member.id}`, body);
@@ -101,7 +102,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
       {(isCoord || !isSelf) && (
         <div className="space-y-2">
           <Label>Setores</Label>
-          <SectorChecklist sectors={allowed} value={form.sector_ids} onChange={(ids) => setForm({ ...form, sector_ids: ids })}
+          <SectorChecklist sectors={allowed} value={form.sector_ids} onChange={(ids) => setForm({ ...form, sector_ids: ids, coordinated_sector_ids: form.coordinated_sector_ids.filter(id => ids.includes(id)) })}
             testid="member-sectors-checklist" />
           {outside.length > 0 && (
             <p className="text-xs text-slate-500">Também participa de: {outside.map((s) => s.name).join(", ")}</p>
@@ -110,6 +111,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
         </div>
       )}
       <div className="space-y-2">
+        {isCoord && form.role === "subcoordenador" && <div className="space-y-2"><Label>Setores que subcoordena</Label><SectorChecklist sectors={sectors.filter(s=>form.sector_ids.includes(s.id))} value={form.coordinated_sector_ids} onChange={ids=>setForm({...form, coordinated_sector_ids:ids})} testid="member-coordinated-sectors" /><p className="text-xs text-slate-500">Nos demais setores selecionados, participa como membro.</p></div>}
         <Label htmlFor="m-notes">Observações</Label>
         <Textarea id="m-notes" rows={3} value={form.notes} placeholder="Disponibilidade, talentos, cuidados..."
           onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="member-notes-input" />

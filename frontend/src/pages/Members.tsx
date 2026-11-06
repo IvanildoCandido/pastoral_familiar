@@ -51,7 +51,7 @@ export default function Members() {
   const sectorName: Record<string, string> = {};
   for (const s of sectors.data ?? []) sectorName[s.id] = s.name;
   const sectorLabels: Record<string, string> = { all: "Todos os setores", none: "Sem setor", ...sectorName };
-  const filterSectors = isCoord ? (sectors.data ?? []) : (sectors.data ?? []).filter((s) => me?.sector_ids.includes(s.id));
+  const filterSectors = isCoord ? (sectors.data ?? []) : (sectors.data ?? []).filter((s) => me?.coordinated_sector_ids.includes(s.id));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["members"] });
@@ -241,7 +241,7 @@ export default function Members() {
 
       <MemberFormDialog open={formOpen} onOpenChange={setFormOpen} member={editing}
         sectors={(sectors.data ?? []).map((s) => ({ id: s.id, name: s.name }))} isCoord={isCoord}
-        mySectorIds={me?.sector_ids ?? []} meId={me?.id} />
+        mySectorIds={me?.coordinated_sector_ids ?? []} meId={me?.id} />
 
       <MemberHistoryDialog member={historyOf} onOpenChange={(o) => !o && setHistoryOf(null)} />
 

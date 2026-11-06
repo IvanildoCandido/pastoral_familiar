@@ -9,7 +9,7 @@ export interface User {
   phone: string;
   notes: string | null;
   role: Role;
-  sector_ids: string[];
+  sector_ids: string[]; coordinated_sector_ids: string[];
   status: UserStatus;
   created_at: string | null;
   last_seen_at: string | null;
@@ -24,14 +24,14 @@ export interface MemberCreate {
   phone: string;
   notes: string;
   role: Role;
-  sector_ids: string[];
+  sector_ids: string[]; coordinated_sector_ids: string[];
 }
 export interface MemberUpdate {
   name: string;
   phone: string;
   notes: string;
   role: Role;
-  sector_ids: string[];
+  sector_ids: string[]; coordinated_sector_ids: string[];
   password?: string | null;
 }
 export interface SignupIn {
@@ -91,6 +91,10 @@ export interface Helper {
   role_name: string | null;
 }
 export interface EventItem {
+  created_by: string | null;
+  created_by_name: string | null;
+  event_type: string;
+  color: string;
   id: string;
   title: string;
   description: string;
@@ -116,6 +120,8 @@ export interface EventItem {
   created_at: string | null;
 }
 export interface EventIn {
+  event_type: string;
+  color: string;
   title: string;
   description: string;
   date: string;

@@ -5,8 +5,9 @@ import { database, type Database } from './db.js';
 import { demand, HttpError, hashPassword, verifyPassword, startSession, logout, currentUser, requireLeader, requireCoordinator, inScope, today } from './auth.js';
 import { loginSchema, signupSchema, memberSchema, updateMemberSchema, sectorSchema, eventSchema, rsvpSchema, attendanceSchema, type Person, type SectorDoc, type EventDoc, type Rsvp } from './models.js';
 import { publicUsers, buildEvents, canRespond } from './views.js';
+import { createBrandingStorage, saveBrandingImage, validateImage, IMAGE_LIMIT, type BrandingStorage } from './storage.js';
 
-export function createApp(db: Database = database) {
+export function createApp(db: Database = database, storageFactory: () => BrandingStorage = createBrandingStorage) {
   const app = express();
   app.disable('x-powered-by');
   app.use((req,res,next) => {
@@ -62,13 +63,22 @@ export function createApp(db: Database = database) {
       VALUES ($1,$2,$3,$4,$5,$6,'membro',$7,'pending')`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,existing.map(s=>s.id)]);
     res.status(201).json({message:'Cadastro enviado! Aguarde a aprovação da coordenação.'});
   });
+  api.get('/settings',async (_req,res)=>res.json((await db.query('SELECT hero_url,logo_url FROM app_settings WHERE id=true'))[0]));
+  api.post('/settings/images/:kind', async (req,_res,next)=> {
+    try {requireCoordinator(await currentUser(db,req)); next();} catch(error) {next(error);}
+  }, express.raw({type:()=>true, limit:IMAGE_LIMIT}), async (req,res)=> {
+    const kind=z.enum(['hero','logo']).parse(req.params.kind);
+    const contentType=(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    validateImage(req.body,contentType);
+    res.json(await saveBrandingImage(db,storageFactory(),kind,req.body,contentType));
+  });
   api.get('/sectors/options',async (_req,res)=>res.json(await db.query('SELECT id,name FROM sectors ORDER BY name')));
   api.get('/sectors',async (req,res)=> {
     await currentUser(db,req);
     const sectors=await db.query<SectorDoc>('SELECT * FROM sectors ORDER BY name');
     const users=await db.query<Person>("SELECT * FROM users WHERE status='active'");
     res.json(sectors.map(s=>({...s,member_count:users.filter(u=>u.sector_ids.includes(s.id)).length,
-      leaders:users.filter(u=>u.sector_ids.includes(s.id) && u.role!=='membro').map(u=>u.name)})));
+      leaders:users.filter(u=>u.role==='coordenador' || (u.role==='subcoordenador' && u.coordinated_sector_ids.includes(s.id))).map(u=>u.name)})));
   });
   api.post('/sectors',async (req,res)=> {
     requireCoordinator(await currentUser(db,req)); const b=sectorSchema.parse(req.body);
@@ -85,7 +95,7 @@ export function createApp(db: Database = database) {
     await db.transaction(async tx=> {
       const rows=await tx.query('DELETE FROM sectors WHERE id=$1 RETURNING id',[sectorId]);
       demand(rows.length,404,'Setor não encontrado');
-      await tx.query('UPDATE users SET sector_ids=array_remove(sector_ids,$1::uuid) WHERE $1::uuid=ANY(sector_ids)',[sectorId]);
+      await tx.query('UPDATE users SET coordinated_sector_ids=array_remove(coordinated_sector_ids,$1::uuid),sector_ids=array_remove(sector_ids,$1::uuid) WHERE $1::uuid=ANY(sector_ids)',[sectorId]);
     });
     res.json({message:'Setor removido'});
   });
@@ -104,9 +114,11 @@ export function createApp(db: Database = database) {
   });
   api.post('/members',async (req,res)=> {
     const p=await currentUser(db,req); requireLeader(p); const b=memberSchema.parse(req.body);
-    const sectorIds=p.role==='subcoordenador' ? (b.sector_ids.filter(s=>p.sector_ids.includes(s)).length ? b.sector_ids.filter(s=>p.sector_ids.includes(s)) : p.sector_ids) : await validSectors(b.sector_ids);
-    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active') RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds]);
+    const sectorIds=p.role==='subcoordenador' ? (b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)).length ? b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)) : p.coordinated_sector_ids) : await validSectors(b.sector_ids);
+    const coordinated=p.role==='coordenador' && b.role==='subcoordenador' ? b.coordinated_sector_ids : [];
+    demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
+    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,coordinated_sector_ids)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9) RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds,coordinated]);
     res.status(201).json((await publicUsers(db,[user]))[0]);
   });
   api.put('/members/:id',async (req,res)=> {
@@ -115,14 +127,16 @@ export function createApp(db: Database = database) {
     let role=target.role, sectorIds=target.sector_ids;
     if (p.role==='subcoordenador') {
       demand(target.role==='membro' || target.id===p.id,403,'Você só pode editar membros dos seus setores');
-      if (target.id!==p.id) sectorIds=[...target.sector_ids.filter(s=>!p.sector_ids.includes(s)),...b.sector_ids.filter(s=>p.sector_ids.includes(s))];
+      if (target.id!==p.id) sectorIds=[...target.sector_ids.filter(s=>!p.coordinated_sector_ids.includes(s)),...b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s))];
     } else {
       demand(target.id!==p.id || b.role==='coordenador',400,'Você não pode remover seu próprio papel de coordenador');
       role=b.role; sectorIds=await validSectors(b.sector_ids);
     }
+    const coordinated=p.role==='coordenador' ? (role==='subcoordenador' ? b.coordinated_sector_ids : []) : target.coordinated_sector_ids;
+    demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
     const [user]=await db.transaction(async tx=> {
-      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7 WHERE id=$1 RETURNING *`,
-        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash]);
+      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7,coordinated_sector_ids=$8 WHERE id=$1 RETURNING *`,
+        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash,coordinated]);
       if (b.password) await tx.query('DELETE FROM sessions WHERE user_id=$1',[memberId]);
       return rows;
     });
@@ -159,8 +173,8 @@ export function createApp(db: Database = database) {
     const roles=b.roles.map(r=>({...r,id:r.id || randomUUID()}));
     demand(new Set(roles.map(r=>r.id)).size===roles.length,422,'Funções duplicadas');
     const eventId=randomUUID();
-    await db.query(`INSERT INTO events (id,title,description,date,time,location,sector_id,escala_open,slots,roles,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[eventId,b.title,b.description,b.date,b.time,b.location,b.sector_id,b.escala_open,b.slots,JSON.stringify(roles),p.id]);
+    await db.query(`INSERT INTO events (id,title,description,date,time,location,sector_id,escala_open,slots,roles,created_by,event_type,color)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,[eventId,b.title,b.description,b.date,b.time,b.location,b.sector_id,b.escala_open,b.slots,JSON.stringify(roles),p.id,b.event_type,b.color]);
     res.status(201).json(await eventResult(eventId,p));
   });
   api.put('/events/:id',async (req,res)=> {
@@ -170,8 +184,8 @@ export function createApp(db: Database = database) {
     demand(new Set(roles.map(r=>r.id)).size===roles.length,422,'Funções duplicadas');
     await db.transaction(async tx=> {
       await eventDoc(eventId,tx,true);
-      await tx.query(`UPDATE events SET title=$2,description=$3,date=$4,time=$5,location=$6,sector_id=$7,escala_open=$8,slots=$9,roles=$10 WHERE id=$1`,
-        [eventId,b.title,b.description,b.date,b.time,b.location,b.sector_id,b.escala_open,b.slots,JSON.stringify(roles)]);
+      await tx.query(`UPDATE events SET title=$2,description=$3,date=$4,time=$5,location=$6,sector_id=$7,escala_open=$8,slots=$9,roles=$10,event_type=$11,color=$12 WHERE id=$1`,
+        [eventId,b.title,b.description,b.date,b.time,b.location,b.sector_id,b.escala_open,b.slots,JSON.stringify(roles),b.event_type,b.color]);
       await tx.query('UPDATE attendance SET event_date=$2 WHERE event_id=$1',[eventId,b.date]);
     });
     res.json(await eventResult(eventId,p));
@@ -212,6 +226,7 @@ export function createApp(db: Database = database) {
     const p=await currentUser(db,req); requireLeader(p); const eventId=id(req.params.id); const b=attendanceSchema.parse(req.body);
     await db.transaction(async tx=> {
       const ev=await eventDoc(eventId,tx,true);
+      demand(p.role==='coordenador' || (!!ev.sector_id && p.coordinated_sector_ids.includes(ev.sector_id)),403,'Você não subcoordena este setor');
       demand(ev.date<=today(),400,'A presença só pode ser marcada no dia do evento ou depois');
       const users=await tx.query<Person>("SELECT * FROM users WHERE id=ANY($1::uuid[]) AND status='active'",[[...new Set(b.present_user_ids)]]);
       await tx.query('DELETE FROM attendance WHERE event_id=$1',[eventId]);
@@ -223,6 +238,7 @@ export function createApp(db: Database = database) {
   const errors: ErrorRequestHandler=(error: unknown,_req,res,_next)=> {
     if (error instanceof z.ZodError) {res.status(422).json({detail:error.issues.map(i=>({loc:['body',...i.path],msg:i.message,type:i.code}))}); return;}
     if (error instanceof HttpError) {res.status(error.status).json({detail:error.message}); return;}
+    if (error && typeof error==='object' && 'type' in error && error.type==='entity.too.large') {res.status(413).json({detail:'O arquivo enviado excede o limite permitido'}); return;}
     const code=error && typeof error==='object' && 'code' in error ? error.code : undefined;
     if (code==='23505') {res.status(409).json({detail:'Este registro já está em uso'}); return;}
     if (code==='23503') {res.status(400).json({detail:'Registro relacionado inválido'}); return;}

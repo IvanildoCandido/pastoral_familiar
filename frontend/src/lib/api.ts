@@ -43,3 +43,13 @@ export const apiPut = <T>(path: string, body?: JsonBody) => request<T>("PUT", pa
 export const apiPatch = <T>(path: string, body?: JsonBody) =>
   request<T>("PATCH", path, body);
 export const apiDelete = <T>(path: string) => request<T>("DELETE", path);
+
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: {"Content-Type": file.type},
+    body: file,
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+  return await res.json() as T;
+}

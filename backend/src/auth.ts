@@ -52,7 +52,7 @@ export async function currentUser(db: Database, req: Request) {
 export function requireLeader(user: Person) { demand(user.role !== 'membro', 403, 'Permissão negada'); }
 export function requireCoordinator(user: Person) { demand(user.role === 'coordenador', 403, 'Permissão negada'); }
 export function inScope(principal: Person, target: Person) {
-  return principal.role === 'coordenador' || (principal.role === 'subcoordenador' && target.sector_ids.some(s => principal.sector_ids.includes(s)));
+  return principal.role === 'coordenador' || (principal.role === 'subcoordenador' && target.sector_ids.some(s => principal.coordinated_sector_ids.includes(s)));
 }
 export function today() {
   return new Intl.DateTimeFormat('en-CA', {timeZone: process.env.APP_TZ || 'America/Fortaleza', year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());

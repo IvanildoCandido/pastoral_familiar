@@ -4,6 +4,8 @@ import AppShell from "@/components/AppShell";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Agenda from "@/pages/Agenda";
+import MyFamily from "@/pages/MyFamily";
+import Families from "@/pages/Families";
 import Members from "@/pages/Members";
 import Settings from "@/pages/Settings";
 import Sectors from "@/pages/Sectors";
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/solicitar-acesso" element={<Signup />} />
         <Route element={<AppShell />}>
           <Route path="/" element={<Agenda />} />
+          <Route path="/minha-familia" element={<MyFamily />} />
+          <Route path="/familias" element={<Families />} />
           <Route path="/membros" element={<Members />} />
           <Route path="/setores" element={<Sectors />} />
           <Route path="/configuracoes" element={<Settings />} />

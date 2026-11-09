@@ -5,9 +5,10 @@ import { today } from './auth.js';
 export async function publicUsers(db: Database, people: Person[], hideNotes = false): Promise<User[]> {
   const stats = await db.query<{user_id: string; count: string; last: string}>(
     'SELECT user_id,count(*)::text AS count,max(event_date) AS last FROM attendance WHERE user_id=ANY($1::uuid[]) GROUP BY user_id', [people.map(u => u.id)]);
+  const families = await db.query<{user_id:string;id:string;name:string}>('SELECT p.user_id,f.id,f.name FROM family_people p JOIN families f ON f.id=p.family_id WHERE p.user_id=ANY($1::uuid[])',[people.map(p=>p.id)]);
   return people.map(u => {
     const stat = stats.find(s => s.user_id === u.id);
-    return {id:u.id, username:u.username, name:u.name, phone:u.phone, birthday:u.birthday ?? null, family_members:u.family_members ?? [], notes:hideNotes ? null : u.notes,
+    return {id:u.id, username:u.username, name:u.name, phone:u.phone, family_id:families.find(f=>f.user_id===u.id)?.id ?? null, family_name:families.find(f=>f.user_id===u.id)?.name ?? null, birthday:u.birthday ?? null, notes:hideNotes ? null : u.notes,
       role:u.role, sector_ids:u.sector_ids, coordinated_sector_ids:u.coordinated_sector_ids, status:u.status, created_at:u.created_at, last_seen_at:u.last_seen_at,
       served_count:Number(stat?.count || 0), last_served:stat?.last || null};
   });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -56,6 +56,12 @@ export default function Members() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["members"] });
     qc.invalidateQueries({ queryKey: ["sectors"] });
+    qc.invalidateQueries({ queryKey: ["birthdays"] });
+    qc.invalidateQueries({ queryKey: ["families"] });
+    qc.invalidateQueries({ queryKey: ["family-members"] });
+    qc.invalidateQueries({ queryKey: ["family-requests"] });
+    qc.invalidateQueries({ queryKey: ["my-family"] });
+    qc.invalidateQueries({ queryKey: ["me"] });
   };
   const approve = useMutation({
     mutationFn: (id: string) => apiPost<User>(`/members/${id}/approve`),
@@ -178,6 +184,7 @@ export default function Members() {
                     <span data-testid={`member-phone-${m.id}`}>{m.phone || "Sem telefone"}</span>
                     <span className="text-slate-400"> · @{m.username}</span>
                   </div>
+                  {m.family_name && <p className="mt-1 text-xs text-amber-800">{isCoord ? <Link to={`/familias?familia=${m.family_id}`} className="hover:underline">{m.family_name}</Link> : m.family_name}</p>}
                   {tab === "active" && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                       <button type="button" onClick={() => setHistoryOf(m)} data-testid={`member-served-${m.id}`}

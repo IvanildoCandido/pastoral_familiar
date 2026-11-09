@@ -1,3 +1,4 @@
+import FamilyInformationFields, { EMPTY_FAMILY_INFORMATION } from "@/components/FamilyInformationFields";
 import BirthdayFields from "@/components/BirthdayFields";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -18,6 +19,7 @@ const EMPTY: SignupIn = { username: "", password: "", name: "", phone: "", secto
 
 export default function Signup() {
   const [form, setForm] = useState<SignupIn>(EMPTY);
+  const [familyInformation, setFamilyInformation] = useState(EMPTY_FAMILY_INFORMATION);
   const [error, setError] = useState<string | null>(null);
   const sectors = useSectorOptions();
 
@@ -48,7 +50,7 @@ export default function Signup() {
           onSubmit={(e) => {
             e.preventDefault();
             setError(null);
-            signup.mutate(form);
+            signup.mutate({...form, ...(familyInformation.people.length ? {family_information:familyInformation} : {})});
           }}
         >
           <div className="space-y-2">
@@ -62,6 +64,7 @@ export default function Signup() {
               onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} data-testid="signup-phone-input" />
           </div>
           <BirthdayFields value={form} onChange={fields => setForm({ ...form, ...fields })} />
+          <FamilyInformationFields value={familyInformation} onChange={setFamilyInformation} />
           <div className="space-y-2">
             <Label>Setores em que deseja servir</Label>
             <SectorChecklist sectors={sectors.data ?? []} value={form.sector_ids}

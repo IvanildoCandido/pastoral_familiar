@@ -2,12 +2,49 @@
 export type Role = "coordenador" | "subcoordenador" | "membro";
 export type UserStatus = "active" | "pending";
 
-export interface FamilyMember {
+export interface FamilyPerson {
+  id: string;
+  user_id: string | null;
+  relationship: "parent" | "child";
   name: string;
-  relationship: "spouse" | "child";
-  birthday: string | null; // MM-DD
+  birthday: string | null;
+}
+export interface Family {
+  id: string;
+  name: string;
+  people: FamilyPerson[];
+}
+export interface FamilyInput {
+  name: string;
+  people: (Omit<FamilyPerson, "id"> & {id?: string})[];
+}
+export interface FamilyInformation {
+  people: {name: string; relationship: "spouse" | "child"; birthday: string | null}[];
+  note: string;
+}
+export interface FamilyRequest {
+  id: string;
+  submitted_by: string;
+  submitted_by_name: string;
+  submitter_status: UserStatus;
+  information: FamilyInformation;
+  status: "pending" | "approved" | "rejected";
+  revision: string;
+  created_at: string;
+  updated_at: string;
+  reviewed_at: string | null;
+  review_note: string;
+  family_id: string | null;
+}
+export interface MyFamilyInformation {
+  family: Family | null;
+  requests: FamilyRequest[];
+}
+export interface FamilyMemberOption {
+  id: string; name: string; birthday: string | null; family_id: string | null; family_name: string | null;
 }
 export interface Birthday {
+  family_name?: string;
   member_id: string;
   member_name: string;
   name: string;
@@ -17,9 +54,10 @@ export interface Birthday {
 }
 export interface BirthdayProfile {
   birthday?: string | null;
-  family_members?: FamilyMember[];
 }
 export interface User extends BirthdayProfile {
+  family_id?: string | null;
+  family_name?: string | null;
   id: string;
   username: string;
   name: string;
@@ -52,6 +90,7 @@ export interface MemberUpdate extends BirthdayProfile {
   password?: string | null;
 }
 export interface SignupIn extends BirthdayProfile {
+  family_information?: FamilyInformation;
   username: string;
   password: string;
   name: string;

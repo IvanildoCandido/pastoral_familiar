@@ -23,6 +23,10 @@ test('API: permissões, escalas, calendário, presença, sessões e exclusões',
   await pg.exec(await readFile(new URL('../../supabase/migrations/001_initial.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../../supabase/migrations/002_event_identity_sectors.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../../supabase/migrations/003_member_birthdays.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../../supabase/migrations/004_member_spouses.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../../supabase/migrations/005_shared_families.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../../supabase/migrations/006_family_access.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../../supabase/migrations/008_family_requests.sql',import.meta.url),'utf8'));
   const files=new Map<string,Buffer>();
   let failUpload=false;
   const storage:BrandingStorage={
@@ -95,36 +99,17 @@ test('API: permissões, escalas, calendário, presença, sessões e exclusões',
     assert.equal(me.role,'subcoordenador'); assert.deepEqual(me.sector_ids,[a.id]);
     await admin.put(`/api/members/${adminId}`).send({name:'Coordenação',role:'membro'}).expect(400);
   });
-  await t.test('aniversários do membro e família: validação, edição, aprovação e privacidade',async ()=> {
-    await request(app).get('/api/birthdays').expect(401);
-    const family=[{name:'Esposa',relationship:'spouse',birthday:'06-15'},
-      {name:'Filha',relationship:'child',birthday:'02-29'},
-      ...Array.from({length:6},(_,i)=>({name:`Filho ${i}`,relationship:'child',birthday:'06-15'}))];
-    const payload={username:'familia',password,name:'Membro da família',birthday:'06-15',family_members:family,sector_ids:[a.id]};
-    for(const birthday of ['02-30','04-31','13-01','00-10','6-15']) {
-      await admin.post('/api/members').send({...payload,birthday}).expect(422);
-    }
-    await admin.post('/api/members').send({...payload,family_members:[family[0],family[0]]}).expect(422);
-    await admin.post('/api/members').send({...payload,family_members:[{...family[1],birthday:'02-30'}]}).expect(422);
+  await t.test('aniversário individual e bloqueio dos vínculos no cadastro',async()=> {
+    const payload={username:'aniversariante',password,name:'Aniversariante',birthday:'02-29'};
+    for (const birthday of ['02-30','04-31','13-01','00-10','6-15']) await admin.post('/api/members').send({...payload,birthday}).expect(422);
     const created=(await admin.post('/api/members').send(payload).expect(201)).body;
-    assert.equal(created.birthday,'06-15'); assert.deepEqual(created.family_members,family);
-    const birthdays=(await member.get('/api/birthdays').expect(200)).body.filter((b:{member_id:string})=>b.member_id===created.id);
-    assert.equal(birthdays.length,9);
-    assert.ok(birthdays.some((b:{birthday:string;relationship:string})=>b.birthday==='02-29' && b.relationship==='child'));
-    assert.ok(!('phone' in birthdays[0])); assert.ok(!('username' in birthdays[0]));
-    const preserved=(await sub.put(`/api/members/${created.id}`).send({name:payload.name,sector_ids:[a.id]}).expect(200)).body;
-    assert.equal(preserved.birthday,'06-15'); assert.deepEqual(preserved.family_members,family);
-    await request(app).post('/api/auth/signup').send({...payload,username:'familia-pendente'}).expect(201);
-    const pending=(await admin.get('/api/members?status=pending')).body.find((p:User)=>p.username==='familia-pendente');
-    assert.equal(pending.birthday,'06-15'); assert.deepEqual(pending.family_members,family);
-    assert.ok(!(await member.get('/api/birthdays')).body.some((b:{member_id:string})=>b.member_id===pending.id));
-    await admin.post(`/api/members/${pending.id}/approve`).expect(200);
-    assert.ok((await member.get('/api/birthdays')).body.some((b:{member_id:string})=>b.member_id===pending.id));
-    const cleared=(await admin.put(`/api/members/${created.id}`).send({name:payload.name,birthday:null,family_members:[]}).expect(200)).body;
-    assert.equal(cleared.birthday,null); assert.deepEqual(cleared.family_members,[]);
-    assert.ok(!(await member.get('/api/birthdays')).body.some((b:{member_id:string})=>b.member_id===created.id));
-    await admin.delete(`/api/members/${pending.id}`).expect(200);
-    assert.ok(!(await member.get('/api/birthdays')).body.some((b:{member_id:string})=>b.member_id===pending.id));
+    assert.equal(created.birthday,'02-29');
+    await sub.put(`/api/members/${person.id}`).send({name:'Membro',spouse_id:outside.id}).expect(422);
+    await request(app).post('/api/auth/signup').send({...payload,username:'indevido',spouse_id:created.id}).expect(422);
+    await request(app).post('/api/auth/signup').send({...payload,username:'indevido',family_members:[]}).expect(422);
+    const birthdays=(await member.get('/api/birthdays').expect(200)).body;
+    assert.ok(birthdays.some((b:{member_id:string;birthday:string})=>b.member_id===created.id && b.birthday==='02-29'));
+    await admin.delete(`/api/members/${created.id}`).expect(200);
   });
   const eventBody={title:'Celebração',date:'2099-06-15',time:'18:00',sector_id:a.id,roles:[{name:'Recepção',slots:1}]};
   const event=(await admin.post('/api/events').send(eventBody).expect(201)).body;

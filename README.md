@@ -136,3 +136,19 @@ npm run storage:setup
 Não é necessário criar políticas públicas de escrita: a API autentica o coordenador pela sessão existente e envia o arquivo ao Storage com a chave do servidor. O navegador envia o arquivo binário para `POST /api/settings/images/hero` ou `/logo`, sem receber a chave secreta. O servidor valida tipo, assinatura e tamanho. Cada envio recebe uma URL nova para evitar cache desatualizado; a imagem anterior é removida depois de salvar a nova URL. Se o upload falhar, a imagem atual é preservada.
 
 Referências: [criação e limites de buckets](https://supabase.com/docs/guides/storage/buckets/creating-buckets), [controle de acesso do Storage](https://supabase.com/docs/guides/storage/security/access-control).
+
+### Famílias e aniversários
+
+O cadastro individual solicita dia e mês de nascimento, opcionalmente, e permite informar familiares para revisão. Somente o coordenador acessa **Famílias** (`/familias`) para vincular membros, informar responsáveis sem conta e manter uma lista compartilhada de filhos. Esposo(a) é opcional; familiares sem conta não recebem usuário ou senha.
+
+Antes de criar uma família, pesquise pelo nome de um responsável ou filho. Nomes são comparados sem diferenças de acentos, maiúsculas ou espaços. O sistema bloqueia repetições na família e sinaliza filhos compatíveis já registrados em outra família. Use **Unir famílias** para reunir registros existentes; aniversários divergentes precisam ser corrigidos antes da união. Membros existentes são vinculados pelo seu cadastro, inclusive filhos com acesso próprio, e seu aniversário aparece uma só vez no calendário.
+
+A migração `005_shared_families` transfere os dados anteriores para famílias compartilhadas e reúne filhos com nome e aniversário iguais no casal. As colunas antigas são preservadas como histórico e deixam de ser usadas pela aplicação. Cadastros públicos e edição de membros não alteram vínculos: somente o coordenador confirma a família na área **Famílias**.
+
+### Envio e revisão das informações familiares
+
+No cadastro público ou em **Minha família** (`/minha-familia`), o membro pode informar esposo(a), filhos e seus aniversários, sem obrigatoriedade. O envio fica pendente e não cria pessoas na família nem aniversários no calendário. Novos envios atualizam a solicitação pendente; revisões concluídas permanecem no histórico do membro.
+
+O coordenador vê o aviso no menu **Famílias** e a fila **Informações aguardando revisão**. Em **Conferir e vincular**, ele escolhe uma família existente ou cria uma nova, confere as sugestões de membros e familiares existentes e confirma os vínculos. Os dados enviados continuam visíveis durante a conferência; aniversários de pessoas com conta vêm do cadastro individual. A aprovação é feita junto com a gravação da família, em uma única transação. Se os dados foram reenviados enquanto a revisão estava aberta, é necessário atualizá-la antes de aprovar.
+
+**Devolver para correção** exige uma orientação, exibida ao membro em **Minha família**. Solicitações enviadas no cadastro público só podem ser aprovadas depois da aprovação do acesso. A migração `008_family_requests` guarda as solicitações separadamente das famílias confirmadas e mantém o acesso público bloqueado por RLS.

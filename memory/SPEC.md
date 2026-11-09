@@ -36,3 +36,15 @@ App em pt-BR para coordenar uma pastoral paroquial: membros, setores, agenda de 
 ## Dados atuais (o usuário já usa o app!)
 Setores reais do usuário: Pós Matrimonial, Pré Matrimonial, Casos especiais, ADM, Sem Setor (NÃO apagar).
 Eventos exemplo: Missa da Comunidade (funções Leitura 2/Acolhida 3/Canto 2), Ensaio do Coral, Entrega de Cestas Básicas, Reunião Geral, Missa de Abertura do Ano Pastoral (passado, com presença). Evento do usuário: Reunião Pastoral Familiar (não alterar).
+
+## Famílias
+- Somente coordenadores gerenciam `/familias` e `/api/families`; formulário administrativo de membro solicita aniversário opcional; cadastro público e `/minha-familia` coletam informações familiares opcionais como solicitações, sem criar vínculos.
+- `families` + `family_people` centralizam responsáveis (um ou dois, cônjuge opcional) e filhos. Cada conta de membro pertence no máximo a uma família; familiares sem conta podem ser vinculados depois pelo coordenador.
+- Validação compara nomes sem acentos/caixa/espaços repetidos, bloqueia pessoas repetidas na família e filhos compatíveis em outra família. União explícita de famílias reúne filhos iguais e exige revisão de aniversários divergentes.
+- Calendário usa aniversários individuais e familiares compartilhados; não repete filho por responsável nem pessoa já vinculada a uma conta.
+
+## Solicitações familiares
+- `family_requests` separa os dados enviados pelo membro da família confirmada. Um pedido pendente por membro; reenvio atualiza sua revisão. Membro lê só seus próprios pedidos e a família em que está vinculado.
+- Somente coordenadores revisam a fila `/api/families/requests`, aprovam com uma família nova/existente ou devolvem com motivo. Confirmação exige incluir o solicitante, usar a revisão atual e ter o cadastro de acesso aprovado; gravação de família e aprovação são atômicas.
+- Cadastro público cria membro pendente e solicitação opcional na mesma transação. Aprovar acesso não aprova a família. Solicitações não entram no calendário; somente pessoas confirmadas.
+- UI: `/minha-familia` envia dados e acompanha respostas; `/familias` contém a fila e formulário de conferência, com aviso de pendências no menu do coordenador.

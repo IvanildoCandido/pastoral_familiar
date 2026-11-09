@@ -34,7 +34,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     password: "",
     name: member?.name ?? "",
     phone: member?.phone ?? "",
-    birthday: member?.birthday ?? null, family_members: member?.family_members ?? [],
+    birthday: member?.birthday ?? null,
     notes: member?.notes ?? "",
     role: member?.role ?? "membro",
     coordinated_sector_ids: member?.coordinated_sector_ids ?? [],
@@ -46,7 +46,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     mutationFn: () => {
       if (member) {
         const body: MemberUpdate = {
-          name: form.name, phone: form.phone, birthday: form.birthday, family_members: form.family_members, notes: form.notes, role: form.role, sector_ids: form.sector_ids, coordinated_sector_ids: form.role === "subcoordenador" ? form.coordinated_sector_ids : [],
+          name: form.name, phone: form.phone, birthday: form.birthday, notes: form.notes, role: form.role, sector_ids: form.sector_ids, coordinated_sector_ids: form.role === "subcoordenador" ? form.coordinated_sector_ids : [],
           password: form.password ? form.password : null,
         };
         return apiPut<User>(`/members/${member.id}`, body);
@@ -56,6 +56,8 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["members"] });
       qc.invalidateQueries({ queryKey: ["birthdays"] });
+      qc.invalidateQueries({ queryKey: ["families"] });
+      qc.invalidateQueries({ queryKey: ["family-members"] });
       qc.invalidateQueries({ queryKey: ["sectors"] });
       qc.invalidateQueries({ queryKey: ["me"] });
       toast.success(member ? "Membro atualizado" : "Membro cadastrado");

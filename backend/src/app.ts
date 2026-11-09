@@ -1,3 +1,5 @@
+import { registerFamilyRequestRoutes, submitFamilyInformation } from './family-requests.js';
+import { registerFamilyRoutes, listBirthdays } from './families.js';
 import express, { type ErrorRequestHandler } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -25,6 +27,9 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
   const api = express.Router();
   app.use('/api',api);
   const id = (value: unknown) => z.string().uuid().parse(value);
+  function rejectFamilyFields(body: Record<string,unknown>) {
+    demand(!('spouse_id' in body) && !('family_members' in body) && !('family_id' in body),422,'Os vínculos devem ser gerenciados pelo coordenador na área Famílias');
+  }
   async function validSectors(ids: string[]) {
     if (!ids.length) return [];
     const rows = await db.query<SectorDoc>('SELECT * FROM sectors WHERE id=ANY($1::uuid[])', [ids]);
@@ -59,8 +64,13 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
   api.post('/auth/signup',async (req,res)=> {
     const b=signupSchema.parse(req.body);
     const existing=await db.query<SectorDoc>('SELECT * FROM sectors WHERE id=ANY($1::uuid[])',[b.sector_ids]);
-    await db.query(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,birthday,family_members)
-      VALUES ($1,$2,$3,$4,$5,$6,'membro',$7,'pending',$8,$9)`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,existing.map(s=>s.id),b.birthday ?? null,JSON.stringify(b.family_members ?? [])]);
+    rejectFamilyFields(req.body);
+    await db.transaction(async tx=> {
+      const memberId=randomUUID();
+      await tx.query(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,birthday)
+        VALUES ($1,$2,$3,$4,$5,$6,'membro',$7,'pending',$8)`,[memberId,b.username,await hashPassword(b.password),b.name,b.phone,b.notes,existing.map(s=>s.id),b.birthday ?? null]);
+      if(b.family_information) await submitFamilyInformation(tx,memberId,b.family_information);
+    });
     res.status(201).json({message:'Cadastro enviado! Aguarde a aprovação da coordenação.'});
   });
   api.get('/settings',async (_req,res)=>res.json((await db.query('SELECT hero_url,logo_url FROM app_settings WHERE id=true'))[0]));
@@ -99,13 +109,11 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     });
     res.json({message:'Setor removido'});
   });
+  registerFamilyRoutes(api,db);
+  registerFamilyRequestRoutes(api,db);
   api.get('/birthdays',async (req,res)=> {
     await currentUser(db,req);
-    const people=await db.query<Person>("SELECT * FROM users WHERE status='active' ORDER BY name");
-    res.json(people.flatMap(person => [
-      ...(person.birthday ? [{name:person.name,relationship:'member',birthday:person.birthday}] : []),
-      ...(person.family_members ?? []).filter(relative=>relative.birthday).map(relative=>({...relative,birthday:relative.birthday!})),
-    ].map(birthday=>({...birthday,member_id:person.id,member_name:person.name,sector_ids:person.sector_ids}))));
+    res.json(await listBirthdays(db));
   });
   api.get('/members',async (req,res)=> {
     const principal=await currentUser(db,req); requireLeader(principal);
@@ -125,8 +133,9 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     const sectorIds=p.role==='subcoordenador' ? (b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)).length ? b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)) : p.coordinated_sector_ids) : await validSectors(b.sector_ids);
     const coordinated=p.role==='coordenador' && b.role==='subcoordenador' ? b.coordinated_sector_ids : [];
     demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
-    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,coordinated_sector_ids,birthday,family_members)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10,$11) RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds,coordinated,b.birthday ?? null,JSON.stringify(b.family_members ?? [])]);
+    rejectFamilyFields(req.body);
+    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,coordinated_sector_ids,birthday)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10) RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds,coordinated,b.birthday ?? null]);
     res.status(201).json((await publicUsers(db,[user]))[0]);
   });
   api.put('/members/:id',async (req,res)=> {
@@ -142,9 +151,10 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     }
     const coordinated=p.role==='coordenador' ? (role==='subcoordenador' ? b.coordinated_sector_ids : []) : target.coordinated_sector_ids;
     demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
+    rejectFamilyFields(req.body);
     const [user]=await db.transaction(async tx=> {
-      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7,coordinated_sector_ids=$8,birthday=$9,family_members=$10 WHERE id=$1 RETURNING *`,
-        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash,coordinated,b.birthday === undefined ? target.birthday : b.birthday,JSON.stringify(b.family_members ?? target.family_members ?? [])]);
+      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7,coordinated_sector_ids=$8,birthday=$9 WHERE id=$1 RETURNING *`,
+        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash,coordinated,b.birthday === undefined ? target.birthday : b.birthday]);
       if (b.password) await tx.query('DELETE FROM sessions WHERE user_id=$1',[memberId]);
       return rows;
     });
@@ -161,7 +171,12 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     const target=await scopedMember(p,memberId);
     demand(target.id!==p.id,400,'Você não pode excluir a si mesmo');
     demand(p.role!=='subcoordenador' || target.status==='pending',403,'Apenas coordenadores podem excluir membros ativos');
-    await db.query('DELETE FROM users WHERE id=$1',[memberId]); res.json({message:'Membro removido'});
+    await db.transaction(async tx=> {
+      await tx.query('SELECT pg_advisory_xact_lock(773043)');
+      await tx.query('UPDATE family_people SET name=$2,birthday=$3 WHERE user_id=$1',[memberId,target.name,target.birthday ?? null]);
+      await tx.query('DELETE FROM users WHERE id=$1',[memberId]);
+    });
+    res.json({message:'Membro removido'});
   });
   api.get('/events',async (req,res)=> {
     const p=await currentUser(db,req);

@@ -6,17 +6,19 @@ import { ApiError, apiGet } from "@/lib/api";
 import { endSession } from "@/lib/session";
 import { isLeader, useMe } from "@/hooks/useMe";
 import { ROLE_BADGE, ROLE_LABELS, initials } from "@/lib/format";
-import type { User } from "@/lib/types";
+import type { FamilyRequest, User } from "@/lib/types";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const linkBase =
   "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200";
 
-function NavItems({ leader, pending, mobile }: { leader: boolean; pending: number; mobile?: boolean }) {
+function NavItems({ leader, coordinator, familyPending, pending, mobile }: { familyPending: number; coordinator: boolean; leader: boolean; pending: number; mobile?: boolean }) {
   const items = [
     { to: "/", label: "Agenda", icon: CalendarDays, id: "agenda", show: true },
     { to: "/membros", label: "Membros", icon: Users, id: "membros", show: leader },
+    { to: "/minha-familia", label: "Minha família", icon: Users, id: "minha-familia", show: !coordinator },
+    { to: "/familias", label: "Famílias", icon: Users, id: "familias", show: coordinator },
     { to: "/setores", label: "Setores", icon: LayoutGrid, id: "setores", show: true },
   ].filter((i) => i.show);
   return (
@@ -38,12 +40,12 @@ function NavItems({ leader, pending, mobile }: { leader: boolean; pending: numbe
         >
           <span className="relative">
             <Icon className="size-4" />
-            {id === "membros" && pending > 0 && (
+            {((id === "membros" && pending > 0) || (id === "familias" && familyPending > 0)) && (
               <span
-                data-testid={`${mobile ? "mobile-" : ""}nav-pending-count`}
+                data-testid={`${mobile ? "mobile-" : ""}nav-${id === "familias" ? "family-requests-count" : "pending-count"}`}
                 className="absolute -top-2 -right-2.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] leading-4 text-white"
               >
-                {pending}
+                {id === "familias" ? familyPending : pending}
               </span>
             )}
           </span>
@@ -64,6 +66,8 @@ export default function AppShell() {
     queryFn: () => apiGet<User[]>("/members?status=pending"),
     enabled: leader,
   });
+
+  const familyRequests = useQuery({queryKey:["family-requests"],queryFn:()=>apiGet<FamilyRequest[]>("/families/requests"),enabled:user?.role==="coordenador"});
 
   if (me.error instanceof ApiError && me.error.status === 401) {
     return <Navigate to="/login" replace />;
@@ -87,7 +91,7 @@ export default function AppShell() {
             </span>
           </NavLink>
           <nav className="ml-6 hidden items-center gap-1 md:flex" data-testid="desktop-nav">
-            <NavItems leader={leader} pending={pending} />
+            <NavItems familyPending={familyRequests.data?.length ?? 0} coordinator={user?.role === "coordenador"} leader={leader} pending={pending} />
           </nav>
           <div className="ml-auto flex items-center gap-3">
             {user && (
@@ -112,6 +116,7 @@ export default function AppShell() {
                     <p className="font-semibold text-[#451A03]">{user.name}</p>
                     <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
                   </div>
+                  <DropdownMenuItem onClick={() => navigate("/minha-familia")} data-testid="profile-my-family-link" className="min-h-10 rounded-lg px-3"><Users className="size-4" /> Minha família</DropdownMenuItem>
                   {user.role === "coordenador" && (
                     <>
                       <DropdownMenuItem onClick={() => navigate("/configuracoes")} data-testid="profile-settings-link" className="min-h-10 rounded-lg px-3">
@@ -138,7 +143,7 @@ export default function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-amber-900/10 bg-amber-50/95 backdrop-blur-xl md:hidden"
         data-testid="mobile-nav"
       >
-        <NavItems leader={leader} pending={pending} mobile />
+        <NavItems familyPending={familyRequests.data?.length ?? 0} coordinator={user?.role === "coordenador"} leader={leader} pending={pending} mobile />
       </nav>
     </div>
   );

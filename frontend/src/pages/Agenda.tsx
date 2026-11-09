@@ -216,7 +216,7 @@ export default function Agenda() {
               {birthdays.isError && <p role="alert" className="text-sm text-red-700">Não foi possível carregar os aniversários.</p>}
               {birthdays.isLoading ? skeleton : dayBirthdays.length > 0 ? <section className="rounded-2xl border border-pink-200 bg-pink-50 p-4" data-testid="birthdays-list">
                 <h3 className="flex items-center gap-2 font-semibold text-pink-900"><Cake className="size-5" />Aniversariantes</h3>
-                <ul className="mt-3 space-y-2">{dayBirthdays.map((b, i) => <li key={`${b.member_id}-${i}`} className="text-sm text-slate-800"><strong>{b.name}</strong> · {b.birthday.split("-").reverse().join("/")}{b.relationship !== "member" && <span className="text-slate-600"> · {b.relationship === "spouse" ? "Esposo(a)" : "Filho(a)"} de {b.member_name}</span>}</li>)}</ul>
+                <ul className="mt-3 space-y-2">{dayBirthdays.map((b, i) => <li key={`${b.member_id}-${i}`} className="text-sm text-slate-800"><strong>{b.name}</strong> · {b.birthday.split("-").reverse().join("/")}{b.family_name ? <span className="text-slate-600"> · {b.family_name}</span> : b.relationship !== "member" && <span className="text-slate-600"> · {b.relationship === "spouse" ? "Esposo(a)" : "Filho(a)"} de {b.member_name}</span>}</li>)}</ul>
               </section> : filter === "birthdays" && !birthdays.isError ? empty(selectedDay ? "Nenhum aniversariante neste dia." : "Nenhum aniversariante neste mês.") : null}
               {filter !== "birthdays" && (monthQ.isLoading || !me ? skeleton
                 : dayList.length === 0 && dayBirthdays.length === 0 ? empty(selectedDay ? "Nenhum evento neste dia." : "Nenhum evento neste mês.")

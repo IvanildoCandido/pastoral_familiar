@@ -18,21 +18,27 @@ const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const username = text(3, 30).regex(/^[a-zA-Z0-9._-]+$/).transform(s => s.toLowerCase());
 const password = z.string().min(6).max(100);
 const sectors = z.array(z.string().uuid()).max(500).default([]).transform(s => [...new Set(s)]);
-const birthday = z.string().regex(/^\d{2}-\d{2}$/).refine(value => z.iso.date().safeParse(`2000-${value}`).success, 'Dia e mês inválidos').nullable();
-const birthdayFields = {
-  birthday: birthday.optional(),
-  family_members: z.array(z.object({
-    name: text(2, 100), relationship: z.enum(['spouse', 'child']), birthday,
-  })).refine(family => family.filter(p => p.relationship === 'spouse').length <= 1, 'Cadastre apenas um esposo ou esposa').optional(),
-};
+export const birthdaySchema = z.string().regex(/^\d{2}-\d{2}$/).refine(value => z.iso.date().safeParse(`2000-${value}`).success, 'Dia e mês inválidos').nullable();
+export const familyInformationSchema = z.object({
+  people: z.array(z.object({name:text(2,100),relationship:z.enum(['spouse','child']),birthday:birthdaySchema}).strict()).min(1).max(500),
+  note: text(0,1000).default(''),
+}).strict().superRefine((info,ctx)=> {
+  if (info.people.filter(p=>p.relationship==='spouse').length>1) ctx.addIssue({code:'custom',message:'Informe apenas um esposo(a)',path:['people']});
+  const names=new Set<string>();
+  info.people.forEach((person,index)=> {
+    const name=person.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase();
+    if(names.has(name)) ctx.addIssue({code:'custom',message:'Esta pessoa já foi informada',path:['people',index,'name']});
+    names.add(name);
+  });
+});
 export const profileSchema = z.object({
-  ...birthdayFields,
+  birthday: birthdaySchema.optional(),
   name: text(2, 100), phone: text(0, 30).default(''), notes: text(0, 1000).default(''),
   role: z.enum(['coordenador', 'subcoordenador', 'membro']).default('membro'), sector_ids: sectors, coordinated_sector_ids: sectors,
 });
 export const memberSchema = profileSchema.extend({username, password});
 export const updateMemberSchema = profileSchema.extend({password: password.nullable().optional()});
-export const signupSchema = memberSchema.omit({role: true, coordinated_sector_ids: true});
+export const signupSchema = memberSchema.omit({role: true, coordinated_sector_ids: true}).extend({family_information:familyInformationSchema.optional()});
 export const loginSchema = z.object({username: z.string().trim().toLowerCase().max(100), password: z.string().max(100)});
 export const sectorSchema = z.object({name: text(2, 60), description: text(0, 300).default('')});
 const slots = z.number().int().min(1).max(500).nullable().default(null);

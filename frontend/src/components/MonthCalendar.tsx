@@ -1,13 +1,14 @@
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { EventItem } from "@/lib/types";
+import { Cake, ChevronLeft, ChevronRight } from "lucide-react";
+import type { Birthday, EventItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
   month: Date;
   onMonthChange: (d: Date) => void;
   events: EventItem[];
+  birthdays: Birthday[];
   selected: string | null;
   onSelect: (iso: string | null) => void;
   today: string;
@@ -15,7 +16,7 @@ interface Props {
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default function MonthCalendar({ month, onMonthChange, events, selected, onSelect, today }: Props) {
+export default function MonthCalendar({ month, onMonthChange, events, birthdays, selected, onSelect, today }: Props) {
   const start = startOfWeek(startOfMonth(month));
   const end = endOfWeek(endOfMonth(month));
   const days: Date[] = [];
@@ -43,6 +44,7 @@ export default function MonthCalendar({ month, onMonthChange, events, selected, 
       <div className="mt-1 grid grid-cols-7 gap-1">
         {days.map((d) => {
           const iso = format(d, "yyyy-MM-dd");
+          const birthdayCount = birthdays.filter(b => b.birthday === iso.slice(5)).length;
           const list = byDay[iso] ?? [];
           const inMonth = isSameMonth(d, month);
           const isSel = selected === iso;
@@ -57,6 +59,7 @@ export default function MonthCalendar({ month, onMonthChange, events, selected, 
                 iso === today ? "bg-[#B45309] text-white" : "text-slate-700")}>
                 {format(d, "d")}
               </span>
+              {birthdayCount > 0 && <span className="mt-1 flex items-center justify-center gap-1 text-pink-700 sm:justify-start" title={`${birthdayCount} aniversariante(s)`} aria-label={`${birthdayCount} aniversariante(s)`}><Cake className="size-4" /><span className="hidden text-[10px] sm:inline">{birthdayCount}</span></span>}
               {list.length > 0 && (
                 <>
                   <span className="mt-1 flex justify-center gap-0.5 sm:hidden">

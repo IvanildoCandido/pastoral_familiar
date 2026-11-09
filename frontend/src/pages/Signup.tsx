@@ -1,3 +1,4 @@
+import BirthdayFields from "@/components/BirthdayFields";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -60,6 +61,7 @@ export default function Signup() {
             <Input id="s-phone" inputMode="tel" className="h-11 bg-white" placeholder="(11) 99999-9999" value={form.phone}
               onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} data-testid="signup-phone-input" />
           </div>
+          <BirthdayFields value={form} onChange={fields => setForm({ ...form, ...fields })} />
           <div className="space-y-2">
             <Label>Setores em que deseja servir</Label>
             <SectorChecklist sectors={sectors.data ?? []} value={form.sector_ids}

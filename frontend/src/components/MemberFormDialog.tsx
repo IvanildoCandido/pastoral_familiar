@@ -1,3 +1,4 @@
+import BirthdayFields from "@/components/BirthdayFields";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     password: "",
     name: member?.name ?? "",
     phone: member?.phone ?? "",
+    birthday: member?.birthday ?? null, family_members: member?.family_members ?? [],
     notes: member?.notes ?? "",
     role: member?.role ?? "membro",
     coordinated_sector_ids: member?.coordinated_sector_ids ?? [],
@@ -44,7 +46,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     mutationFn: () => {
       if (member) {
         const body: MemberUpdate = {
-          name: form.name, phone: form.phone, notes: form.notes, role: form.role, sector_ids: form.sector_ids, coordinated_sector_ids: form.role === "subcoordenador" ? form.coordinated_sector_ids : [],
+          name: form.name, phone: form.phone, birthday: form.birthday, family_members: form.family_members, notes: form.notes, role: form.role, sector_ids: form.sector_ids, coordinated_sector_ids: form.role === "subcoordenador" ? form.coordinated_sector_ids : [],
           password: form.password ? form.password : null,
         };
         return apiPut<User>(`/members/${member.id}`, body);
@@ -53,6 +55,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["members"] });
+      qc.invalidateQueries({ queryKey: ["birthdays"] });
       qc.invalidateQueries({ queryKey: ["sectors"] });
       qc.invalidateQueries({ queryKey: ["me"] });
       toast.success(member ? "Membro atualizado" : "Membro cadastrado");
@@ -72,6 +75,7 @@ function MemberForm({ member, sectors, isCoord, mySectorIds, meId, onDone }: Omi
         <Input id="m-phone" inputMode="tel" placeholder="(11) 99999-9999" value={form.phone}
           onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} data-testid="member-phone-input" />
       </div>
+      <BirthdayFields value={form} onChange={fields => setForm({ ...form, ...fields })} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="m-user">Usuário</Label>

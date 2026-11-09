@@ -7,7 +7,7 @@ export async function publicUsers(db: Database, people: Person[], hideNotes = fa
     'SELECT user_id,count(*)::text AS count,max(event_date) AS last FROM attendance WHERE user_id=ANY($1::uuid[]) GROUP BY user_id', [people.map(u => u.id)]);
   return people.map(u => {
     const stat = stats.find(s => s.user_id === u.id);
-    return {id:u.id, username:u.username, name:u.name, phone:u.phone, notes:hideNotes ? null : u.notes,
+    return {id:u.id, username:u.username, name:u.name, phone:u.phone, birthday:u.birthday ?? null, family_members:u.family_members ?? [], notes:hideNotes ? null : u.notes,
       role:u.role, sector_ids:u.sector_ids, coordinated_sector_ids:u.coordinated_sector_ids, status:u.status, created_at:u.created_at, last_seen_at:u.last_seen_at,
       served_count:Number(stat?.count || 0), last_served:stat?.last || null};
   });

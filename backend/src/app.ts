@@ -59,8 +59,8 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
   api.post('/auth/signup',async (req,res)=> {
     const b=signupSchema.parse(req.body);
     const existing=await db.query<SectorDoc>('SELECT * FROM sectors WHERE id=ANY($1::uuid[])',[b.sector_ids]);
-    await db.query(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status)
-      VALUES ($1,$2,$3,$4,$5,$6,'membro',$7,'pending')`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,existing.map(s=>s.id)]);
+    await db.query(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,birthday,family_members)
+      VALUES ($1,$2,$3,$4,$5,$6,'membro',$7,'pending',$8,$9)`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,existing.map(s=>s.id),b.birthday ?? null,JSON.stringify(b.family_members ?? [])]);
     res.status(201).json({message:'Cadastro enviado! Aguarde a aprovação da coordenação.'});
   });
   api.get('/settings',async (_req,res)=>res.json((await db.query('SELECT hero_url,logo_url FROM app_settings WHERE id=true'))[0]));
@@ -99,6 +99,14 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     });
     res.json({message:'Setor removido'});
   });
+  api.get('/birthdays',async (req,res)=> {
+    await currentUser(db,req);
+    const people=await db.query<Person>("SELECT * FROM users WHERE status='active' ORDER BY name");
+    res.json(people.flatMap(person => [
+      ...(person.birthday ? [{name:person.name,relationship:'member',birthday:person.birthday}] : []),
+      ...(person.family_members ?? []).filter(relative=>relative.birthday).map(relative=>({...relative,birthday:relative.birthday!})),
+    ].map(birthday=>({...birthday,member_id:person.id,member_name:person.name,sector_ids:person.sector_ids}))));
+  });
   api.get('/members',async (req,res)=> {
     const principal=await currentUser(db,req); requireLeader(principal);
     const status=z.enum(['active','pending']).parse(req.query.status || 'active');
@@ -117,8 +125,8 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     const sectorIds=p.role==='subcoordenador' ? (b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)).length ? b.sector_ids.filter(s=>p.coordinated_sector_ids.includes(s)) : p.coordinated_sector_ids) : await validSectors(b.sector_ids);
     const coordinated=p.role==='coordenador' && b.role==='subcoordenador' ? b.coordinated_sector_ids : [];
     demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
-    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,coordinated_sector_ids)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9) RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds,coordinated]);
+    const [user]=await db.query<Person>(`INSERT INTO users (id,username,password_hash,name,phone,notes,role,sector_ids,status,coordinated_sector_ids,birthday,family_members)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10,$11) RETURNING *`,[randomUUID(),b.username,await hashPassword(b.password),b.name,b.phone,b.notes,p.role==='subcoordenador'?'membro':b.role,sectorIds,coordinated,b.birthday ?? null,JSON.stringify(b.family_members ?? [])]);
     res.status(201).json((await publicUsers(db,[user]))[0]);
   });
   api.put('/members/:id',async (req,res)=> {
@@ -135,8 +143,8 @@ export function createApp(db: Database = database, storageFactory: () => Brandin
     const coordinated=p.role==='coordenador' ? (role==='subcoordenador' ? b.coordinated_sector_ids : []) : target.coordinated_sector_ids;
     demand(coordinated.every(s=>sectorIds.includes(s)),422,'Subcoordenação deve pertencer aos setores selecionados');
     const [user]=await db.transaction(async tx=> {
-      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7,coordinated_sector_ids=$8 WHERE id=$1 RETURNING *`,
-        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash,coordinated]);
+      const rows=await tx.query<Person>(`UPDATE users SET name=$2,phone=$3,notes=$4,role=$5,sector_ids=$6,password_hash=$7,coordinated_sector_ids=$8,birthday=$9,family_members=$10 WHERE id=$1 RETURNING *`,
+        [memberId,b.name,b.phone,b.notes,role,sectorIds,b.password ? await hashPassword(b.password) : target.password_hash,coordinated,b.birthday === undefined ? target.birthday : b.birthday,JSON.stringify(b.family_members ?? target.family_members ?? [])]);
       if (b.password) await tx.query('DELETE FROM sessions WHERE user_id=$1',[memberId]);
       return rows;
     });

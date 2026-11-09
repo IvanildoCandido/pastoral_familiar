@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { Role, UserStatus } from '../../shared/types.js';
-export interface Person {
+import type { BirthdayProfile, Role, UserStatus } from '../../shared/types.js';
+export interface Person extends BirthdayProfile {
   id: string; username: string; password_hash: string; name: string; phone: string;
   notes: string; role: Role; sector_ids: string[]; coordinated_sector_ids: string[]; status: UserStatus;
   created_at: string; last_seen_at: string | null;
@@ -18,7 +18,15 @@ const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const username = text(3, 30).regex(/^[a-zA-Z0-9._-]+$/).transform(s => s.toLowerCase());
 const password = z.string().min(6).max(100);
 const sectors = z.array(z.string().uuid()).max(500).default([]).transform(s => [...new Set(s)]);
+const birthday = z.string().regex(/^\d{2}-\d{2}$/).refine(value => z.iso.date().safeParse(`2000-${value}`).success, 'Dia e mês inválidos').nullable();
+const birthdayFields = {
+  birthday: birthday.optional(),
+  family_members: z.array(z.object({
+    name: text(2, 100), relationship: z.enum(['spouse', 'child']), birthday,
+  })).refine(family => family.filter(p => p.relationship === 'spouse').length <= 1, 'Cadastre apenas um esposo ou esposa').optional(),
+};
 export const profileSchema = z.object({
+  ...birthdayFields,
   name: text(2, 100), phone: text(0, 30).default(''), notes: text(0, 1000).default(''),
   role: z.enum(['coordenador', 'subcoordenador', 'membro']).default('membro'), sector_ids: sectors, coordinated_sector_ids: sectors,
 });

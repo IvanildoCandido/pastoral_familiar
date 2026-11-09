@@ -2,7 +2,24 @@
 export type Role = "coordenador" | "subcoordenador" | "membro";
 export type UserStatus = "active" | "pending";
 
-export interface User {
+export interface FamilyMember {
+  name: string;
+  relationship: "spouse" | "child";
+  birthday: string | null; // MM-DD
+}
+export interface Birthday {
+  member_id: string;
+  member_name: string;
+  name: string;
+  relationship: "member" | "spouse" | "child";
+  birthday: string;
+  sector_ids: string[];
+}
+export interface BirthdayProfile {
+  birthday?: string | null;
+  family_members?: FamilyMember[];
+}
+export interface User extends BirthdayProfile {
   id: string;
   username: string;
   name: string;
@@ -17,7 +34,7 @@ export interface User {
   last_served: string | null; // YYYY-MM-DD
 }
 
-export interface MemberCreate {
+export interface MemberCreate extends BirthdayProfile {
   username: string;
   password: string;
   name: string;
@@ -26,7 +43,7 @@ export interface MemberCreate {
   role: Role;
   sector_ids: string[]; coordinated_sector_ids: string[];
 }
-export interface MemberUpdate {
+export interface MemberUpdate extends BirthdayProfile {
   name: string;
   phone: string;
   notes: string;
@@ -34,7 +51,7 @@ export interface MemberUpdate {
   sector_ids: string[]; coordinated_sector_ids: string[];
   password?: string | null;
 }
-export interface SignupIn {
+export interface SignupIn extends BirthdayProfile {
   username: string;
   password: string;
   name: string;

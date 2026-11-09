@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CalendarDays, CalendarHeart, HandHeart, List, Plus, Sparkles } from "lucide-react";
+import { Cake, CalendarDays, CalendarHeart, HandHeart, List, Plus, Sparkles } from "lucide-react";
 import EventCard from "@/components/EventCard";
 import EventFormDialog from "@/components/EventFormDialog";
 import AttendanceDialog from "@/components/AttendanceDialog";
@@ -14,15 +14,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { apiDelete, apiGet } from "@/lib/api";
 import { errorMessage, fmtDate } from "@/lib/format";
 import { useMe, useSectors } from "@/hooks/useMe";
-import type { EventItem, MessageOut } from "@/lib/types";
+import type { Birthday, EventItem, MessageOut } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1442504028989-ab58b5f29a4a?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1600";
 
-type Filter = "all" | "mine" | "open" | "going" | "unanswered" | "not_going";
+type Filter = "birthdays" | "all" | "mine" | "open" | "going" | "unanswered" | "not_going";
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Todos" },
+  { id: "birthdays", label: "Aniversários" },
   { id: "going", label: "Marquei que vou" },
   { id: "not_going", label: "Marquei que não vou" },
   { id: "unanswered", label: "Ainda não respondi" },
@@ -63,6 +64,9 @@ export default function Agenda() {
     queryFn: () => apiGet<EventItem[]>(`/events?month=${ym}`),
     enabled: !!me && view === "calendar",
   });
+  const birthdays = useQuery({queryKey: ["birthdays"], queryFn: () => apiGet<Birthday[]>("/birthdays"), enabled: !!me});
+  const monthBirthdays = (birthdays.data ?? []).filter(b => b.birthday.startsWith(ym.slice(5)) && Number(b.birthday.slice(3)) <= new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate() && (filter !== "mine" || b.sector_ids.some(id => me?.sector_ids.includes(id))));
+  const dayBirthdays = monthBirthdays.filter(b => !selectedDay || b.birthday === selectedDay.slice(5));
   const sectors = useSectors(!!me);
 
   const del = useMutation({
@@ -77,6 +81,7 @@ export default function Agenda() {
 
   const mySectors = me?.sector_ids ?? [];
   const applyFilter = (all: EventItem[]) => {
+    if (filter === "birthdays") return [];
     if (filter === "going" || filter === "not_going") return all.filter(e=>e.my_response===filter);
     if (filter === "unanswered") return all.filter(e=>e.my_response===null);
     if (filter === "mine") return all.filter((e) => !e.sector_id || mySectors.includes(e.sector_id));
@@ -181,7 +186,7 @@ export default function Agenda() {
             )}
             <div className="flex flex-wrap gap-2 sm:ml-auto" data-testid="agenda-filters">
               {FILTERS.map((f) => (
-                <button key={f.id} type="button" onClick={() => setFilter(f.id)} data-testid={`agenda-filter-${f.id}`}
+                <button key={f.id} type="button" onClick={() => { setFilter(f.id); if (f.id === "birthdays") setView("calendar"); }} data-testid={`agenda-filter-${f.id}`}
                   className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-200",
                     filter === f.id ? "border-amber-700 bg-amber-100 text-[#78350F]" : "border-slate-200 text-slate-600 hover:bg-white")}>
                   {f.label}
@@ -197,10 +202,10 @@ export default function Agenda() {
           ) : (
             <div className="space-y-4">
               <MonthCalendar month={month} onMonthChange={(d) => { setMonth(d); setSelectedDay(null); }}
-                events={monthEvents} selected={selectedDay} onSelect={setSelectedDay} today={localToday()} />
+                events={monthEvents} birthdays={monthBirthdays} selected={selectedDay} onSelect={setSelectedDay} today={localToday()} />
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700" data-testid="calendar-selection-label">
-                  {selectedDay ? fmtDate(selectedDay, "EEEE, d 'de' MMMM") : "Todos os eventos do mês"}
+                  {selectedDay ? fmtDate(selectedDay, "EEEE, d 'de' MMMM") : "Eventos e aniversários do mês"}
                 </p>
                 {selectedDay && (
                   <button type="button" onClick={() => setSelectedDay(null)} className="text-xs font-semibold text-[#9A3412] hover:underline" data-testid="calendar-clear-day">
@@ -208,9 +213,14 @@ export default function Agenda() {
                   </button>
                 )}
               </div>
-              {monthQ.isLoading || !me ? skeleton
-                : dayList.length === 0 ? empty(selectedDay ? "Nenhum evento neste dia." : "Nenhum evento neste mês.")
-                : renderCards(dayList)}
+              {birthdays.isError && <p role="alert" className="text-sm text-red-700">Não foi possível carregar os aniversários.</p>}
+              {birthdays.isLoading ? skeleton : dayBirthdays.length > 0 ? <section className="rounded-2xl border border-pink-200 bg-pink-50 p-4" data-testid="birthdays-list">
+                <h3 className="flex items-center gap-2 font-semibold text-pink-900"><Cake className="size-5" />Aniversariantes</h3>
+                <ul className="mt-3 space-y-2">{dayBirthdays.map((b, i) => <li key={`${b.member_id}-${i}`} className="text-sm text-slate-800"><strong>{b.name}</strong> · {b.birthday.split("-").reverse().join("/")}{b.relationship !== "member" && <span className="text-slate-600"> · {b.relationship === "spouse" ? "Esposo(a)" : "Filho(a)"} de {b.member_name}</span>}</li>)}</ul>
+              </section> : filter === "birthdays" && !birthdays.isError ? empty(selectedDay ? "Nenhum aniversariante neste dia." : "Nenhum aniversariante neste mês.") : null}
+              {filter !== "birthdays" && (monthQ.isLoading || !me ? skeleton
+                : dayList.length === 0 && dayBirthdays.length === 0 ? empty(selectedDay ? "Nenhum evento neste dia." : "Nenhum evento neste mês.")
+                : dayBirthdays.length > 0 && dayList.length === 0 ? null : renderCards(dayList))}
             </div>
           )}
         </section>
